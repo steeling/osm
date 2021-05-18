@@ -165,7 +165,7 @@ func (wh *mutatingWebhook) getAdmissionReqResp(proxyUUID uuid.UUID, admissionReq
 	var admissionReq admissionv1.AdmissionReview
 	if _, _, err := deserializer.Decode(admissionRequestBody, nil, &admissionReq); err != nil {
 		log.Error().Err(err).Msg("Error decoding admission request body")
-		admissionResp.Response = webhook.AdmissionError(err)
+		admissionResp.Response = webhook.ResponseFromError(err)
 	} else {
 		admissionResp.Response = wh.mutate(admissionReq.Request, proxyUUID)
 	}
@@ -228,14 +228,14 @@ func (wh *mutatingWebhook) podCreationHandler(w http.ResponseWriter, req *http.R
 func (wh *mutatingWebhook) mutate(req *admissionv1.AdmissionRequest, proxyUUID uuid.UUID) *admissionv1.AdmissionResponse {
 	if req == nil {
 		log.Error().Msg("nil admission Request")
-		return webhook.AdmissionError(errNilAdmissionRequest)
+		return webhook.ResponseFromError(errNilAdmissionRequest)
 	}
 
 	// Decode the Pod spec from the request
 	var pod corev1.Pod
 	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
 		log.Error().Err(err).Msgf("Error unmarshaling request to pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
-		return webhook.AdmissionError(err)
+		return webhook.ResponseFromError(err)
 	}
 
 	// Start building the response
@@ -247,7 +247,7 @@ func (wh *mutatingWebhook) mutate(req *admissionv1.AdmissionRequest, proxyUUID u
 	// Check if we must inject the sidecar
 	if inject, err := wh.mustInject(&pod, req.Namespace); err != nil {
 		log.Error().Err(err).Msgf("Error checking if sidecar must be injected for pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
-		return webhook.AdmissionError(err)
+		return webhook.ResponseFromError(err)
 	} else if !inject {
 		log.Trace().Msgf("Skipping sidecar injection for pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
 		return resp
@@ -256,7 +256,7 @@ func (wh *mutatingWebhook) mutate(req *admissionv1.AdmissionRequest, proxyUUID u
 	patchBytes, err := wh.createPatch(&pod, req, proxyUUID)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to create patch for pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
-		return webhook.AdmissionError(err)
+		return webhook.ResponseFromError(err)
 	}
 
 	patchAdmissionResponse(resp, patchBytes)

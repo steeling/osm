@@ -194,7 +194,7 @@ func (whc *webhookConfig) getAdmissionReqResp(admissionRequestBody []byte) (requ
 	var admissionReq admissionv1.AdmissionReview
 	if _, _, err := deserializer.Decode(admissionRequestBody, nil, &admissionReq); err != nil {
 		log.Error().Err(err).Msg("Error decoding admission request body")
-		admissionResp.Response = webhook.AdmissionError(err)
+		admissionResp.Response = webhook.ResponseFromError(err)
 	} else {
 		admissionResp.Response = whc.validateConfigMap(admissionReq.Request)
 	}
@@ -207,14 +207,14 @@ func (whc *webhookConfig) getAdmissionReqResp(admissionRequestBody []byte) (requ
 func (whc *webhookConfig) validateConfigMap(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
 	if req == nil {
 		log.Error().Msg("nil admission request")
-		return webhook.AdmissionError(errNilAdmissionRequest)
+		return webhook.ResponseFromError(errNilAdmissionRequest)
 	}
 
 	// Decode the configmap from the request
 	var configMap corev1.ConfigMap
 	if _, _, err := deserializer.Decode(req.Object.Raw, nil, &configMap); err != nil {
 		log.Error().Err(err).Msgf("Error unmarshaling request to configmap in namespace %s", req.Namespace)
-		return webhook.AdmissionError(err)
+		return webhook.ResponseFromError(err)
 	}
 
 	log.Trace().Msgf("Validation request: (new object: %v) (old object: %v)", string(req.Object.Raw), string(req.OldObject.Raw))

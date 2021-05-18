@@ -1,80 +1,128 @@
 package webhook
 
 import (
-	"errors"
-	"net/http"
-	"net/http/httptest"
-	"strings"
+	"encoding/json"
+	"fmt"
 	"testing"
 
-	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
 	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
-var (
-	errorTest = errors.New("error test")
-)
+type fakeObj struct {
+	Allow        bool
+	Error        bool
+	ExplicitResp bool
+}
 
-func TestGetAdmissionRequestBody(t *testing.T) {
-	assert := tassert.New(t)
-	w := httptest.NewRecorder()
-
+func TestHandleValidation(t *testing.T) {
+	gvk := metav1.GroupVersionKind{
+		Kind:    "Fake",
+		Group:   "fake.osm.io",
+		Version: "v1alpha1",
+	}
+	s := ValidatingWebhookServer{
+		Validators: map[string]Validator{
+			gvk.String(): func(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+				f := fakeObj{}
+				if err := json.Unmarshal(req.Object.Raw, &f); err != nil {
+					return nil, err
+				}
+				if f.ExplicitResp {
+					return &admissionv1.AdmissionResponse{
+						Allowed: f.Allow,
+						Result:  &metav1.Status{Message: "explicit response"},
+					}, nil
+				}
+				if f.Error {
+					return &admissionv1.AdmissionResponse{
+						Allowed: f.Allow,
+						Result:  &metav1.Status{Message: "explicit error"},
+					}, nil
+				}
+				return nil, nil
+			},
+		},
+	}
+	badGvk := metav1.GroupVersionKind{
+		Kind:    "Fake",
+		Group:   "fake.osm.io",
+		Version: "badVersion",
+	}
 	testCases := []struct {
 		testName string
-		req      *http.Request
-		expBody  []byte
-		expErr   error
+		req      *admissionv1.AdmissionRequest
+		expResp  *admissionv1.AdmissionResponse
 	}{
 		{
-			testName: "Err on nil request body",
-			req:      httptest.NewRequest("GET", "/a/b/c", nil),
-			expBody:  nil,
-			expErr:   errEmptyAdmissionRequestBody,
+			testName: "unknown gvk",
+			req: &admissionv1.AdmissionRequest{
+				UID:  "1",
+				Kind: badGvk,
+				Object: runtime.RawExtension{
+					Raw: []byte(`{}`),
+				},
+			},
+			expResp: &admissionv1.AdmissionResponse{
+				UID:    "1",
+				Result: &metav1.Status{Message: fmt.Errorf("unknown gvk: %s", badGvk).Error()},
+			},
 		},
 		{
-			testName: "Err on empty request body",
-			req:      httptest.NewRequest("GET", "/a/b/c", strings.NewReader("")),
-			expBody:  nil,
-			expErr:   errEmptyAdmissionRequestBody,
+			testName: "invalid obj returned explicit error",
+			req: &admissionv1.AdmissionRequest{
+				UID:  "2",
+				Kind: gvk,
+				Object: runtime.RawExtension{
+					Raw: []byte(`{"Allow": true, "Error": true}`),
+				},
+			},
+			expResp: &admissionv1.AdmissionResponse{
+				UID:     "2",
+				Allowed: true, // the original response should be untouched
+				Result:  &metav1.Status{Message: "explicit error"},
+			},
 		},
 		{
-			testName: "Err on reading request body",
-			req:      httptest.NewRequest("GET", "/a/b/c", err(5)),
-			expBody:  []byte{0},
-			expErr:   errorTest,
+			testName: "valid obj explicit response obj",
+			req: &admissionv1.AdmissionRequest{
+				UID:  "3",
+				Kind: gvk,
+				Object: runtime.RawExtension{
+					Raw: []byte(`{"Allow": true, "ExplicitResp": true}`),
+				},
+			},
+			expResp: &admissionv1.AdmissionResponse{
+				UID:     "3",
+				Allowed: true,
+				Result:  &metav1.Status{Message: "explicit response"},
+			},
 		},
 		{
-			testName: "Successfully read request body",
-			req:      httptest.NewRequest("GET", "/a/b/c", strings.NewReader("hi123")),
-			expBody:  []byte("hi123"),
-			expErr:   nil,
+			testName: "valid obj implicit response obj",
+			req: &admissionv1.AdmissionRequest{
+				UID:  "4",
+				Kind: gvk,
+				Object: runtime.RawExtension{
+					Raw: []byte(`{}`),
+				},
+			},
+			expResp: &admissionv1.AdmissionResponse{
+				UID:     "4",
+				Allowed: true,
+			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.testName, func(t *testing.T) {
-			b, err := GetAdmissionRequestBody(w, tc.req)
-			assert.Equal(tc.expErr, err)
-			assert.Equal(tc.expBody, b)
+			resp := s.handleValidation(tc.req)
+			assert := tassert.New(t)
+
+			assert.NotNil(resp)
+			assert.Equal(tc.expResp, resp)
 		})
 	}
 }
-
-func TestAdmissionError(t *testing.T) {
-	assert := tassert.New(t)
-	message := uuid.New().String()
-	err := errors.New(message)
-	actual := AdmissionError(err)
-	expected := admissionv1.AdmissionResponse{
-		Result: &metav1.Status{
-			Message: message,
-		},
-	}
-	assert.Equal(&expected, actual)
-}
-
-type err int
-
-func (err) Read(_ []byte) (i int, err error) { return 1, errorTest }
