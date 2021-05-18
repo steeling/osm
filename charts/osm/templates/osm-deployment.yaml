@@ -51,6 +51,8 @@ spec:
               containerPort: 15128
             - name: "metrics"
               containerPort: 9091
+            - name: "osm-config-validator"
+              containerPort: 9093
           command: ['/osm-controller']
           args: [
             "--verbosity", "{{.Values.OpenServiceMesh.controllerLogLevel}}",
