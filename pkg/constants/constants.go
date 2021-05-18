@@ -79,6 +79,9 @@ const (
 	// ADSServerPort is the port on which the Aggregated Discovery Service (ADS) listens for new gRPC connections from Envoy proxies
 	ADSServerPort = 15128
 
+	// OSMWebhookPort is the port on which the OSM Webhook accepts K8s validating admission requests.
+	OSMWebhookPort = 9093
+
 	// PrometheusScrapePath is the path for prometheus to scrap envoy metrics from
 	PrometheusScrapePath = "/stats/prometheus"
 
