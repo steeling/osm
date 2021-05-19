@@ -71,7 +71,6 @@ func main() {
 
 	err := server.ListenAndServeTLS("", "")
 	if err != nil {
-
 		log.Error().Err(err).Msgf("Failed to start OSM metrics/probes HTTP server")
 	}
 
