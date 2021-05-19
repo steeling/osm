@@ -35,7 +35,24 @@ OpenServiceMesh:
     # -- OSM controller's pod labels
     podLabels: {}
 
-  #
+  osmwebhook:
+    # -- `osm-webhook` replicas
+    replicaCount: 1
+    # -- Configurable port exposed for `osm-webhook`
+    port: 9093
+    image:
+      registry: openservicemesh
+      pullPolicy: IfNotPresent
+      tag: latest
+    resource:
+      limits:
+        cpu: "1.5"
+        memory: "512M"
+      requests:
+        cpu: "0.5"
+        memory: "128M"
+    podLabels: {}
+
   # -- Prometheus parameters
   prometheus:
     # -- Prometheus's container resource parameters
