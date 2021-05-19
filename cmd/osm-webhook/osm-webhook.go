@@ -3,6 +3,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"net/http"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/health"
-	"github.com/openservicemesh/osm/pkg/httpserver"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/version"
@@ -49,25 +49,27 @@ func main() {
 
 	stop := signals.RegisterExitHandlers()
 
-	httpServer := httpserver.NewHTTPServer(uint16(*port))
+	serveMux := http.NewServeMux()
+	server := &http.Server{
+		Addr:    fmt.Sprint(":", *port),
+		Handler: serveMux,
+		TLSConfig: &tls.Config{
+			Certificates: []tls.Certificate{},
+		},
+	}
 
-	httpServer.AddHandler("/version", version.GetVersionHandler())
-
-	httpServer.AddHandler("/", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	serveMux.Handle("/version", version.GetVersionHandler())
+	serveMux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		fmt.Fprint(w, "hello world")
 	}))
-
-	// TODO: add health/readiness probes
-	httpServer.AddHandlers(map[string]http.Handler{
-		"/health/ready": health.ReadinessHandler(nil, nil),
-		"/health/alive": health.LivenessHandler(nil, nil),
-	})
+	serveMux.Handle("/health/ready", health.ReadinessHandler(nil, nil))
+	serveMux.Handle("/health/alive", health.LivenessHandler(nil, nil))
 
 	// TODO: Do we need to add metrics stuff?
 
 	// TODO: Add SSL Certs
 
-	err := httpServer.Start()
+	err := server.ListenAndServeTLS("", "")
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Failed to start OSM metrics/probes HTTP server")
 	}
