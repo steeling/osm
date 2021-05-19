@@ -25,9 +25,12 @@ OpenServiceMesh:
         cpu: "0.5"
         memory: "128M"
     podLabels: {}
+
   osmwebhook:
     # -- `osm-webhook` replicas
     replicaCount: 1
+    # -- Configurable port exposed for `osm-webhook`
+    port: 9093
     image:
       registry: openservicemesh
       pullPolicy: IfNotPresent

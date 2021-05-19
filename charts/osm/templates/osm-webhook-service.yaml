@@ -8,8 +8,8 @@ metadata:
     app: osm-webhook
 spec:
   ports:
-    - name: config-webhook
-      port: 9093
-      targetPort: 9093
+    - name: osm-webhook
+      port: {{ .Values.OpenServiceMesh.osmwebhook.port }}
+      targetPort: {{ .Values.OpenServiceMesh.osmwehook.port }}
   selector:
     app: osm-webhook

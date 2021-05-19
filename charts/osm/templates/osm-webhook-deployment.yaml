@@ -33,13 +33,13 @@ spec:
         kubernetes.io/os: linux
       containers:
         - name: osm-webhook
-          image: "{{ .Values.OpenServiceMesh.osmwebhook.image.registry }}/osm-validator:{{ .Values.OpenServiceMesh.osmwebhook.image.tag }}"
+          image: "{{ .Values.OpenServiceMesh.osmwebhook.image.registry }}/osm-webhook:{{ .Values.OpenServiceMesh.osmwebhook.image.tag }}"
           imagePullPolicy: {{ .Values.OpenServiceMesh.osmwebhook.image.pullPolicy }}
           ports:
             - name: "metrics"
               containerPort: 9091
             - name: "osm-webhook"
-              containerPort: 9093
+              containerPort: {{ .Values.OpenServiceMesh.osmwebhook.port }}
           command: ['/osm-webhook']
           resources:
             limits:
