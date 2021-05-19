@@ -10,6 +10,6 @@ spec:
   ports:
     - name: osm-webhook
       port: {{ .Values.OpenServiceMesh.osmwebhook.port }}
-      targetPort: {{ .Values.OpenServiceMesh.osmwehook.port }}
+      targetPort: {{ .Values.OpenServiceMesh.osmwebhook.port }}
   selector:
     app: osm-webhook
