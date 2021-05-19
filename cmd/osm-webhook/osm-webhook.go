@@ -3,6 +3,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"net/http"
@@ -10,11 +11,12 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/health"
-	"github.com/openservicemesh/osm/pkg/httpserver"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/version"
 	"github.com/spf13/pflag"
+	"k8s.io/api/admission/v1beta1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
@@ -40,6 +42,16 @@ func parseFlags() error {
 	return nil
 }
 
+func HandleAdmission(review *v1beta1.AdmissionReview) error {
+	review.Response = &v1beta1.AdmissionResponse{
+		Allowed: true,
+		Result: &v1.Status{
+			Message: "Welcome aboard!",
+		},
+	}
+	return nil
+}
+
 func main() {
 	log.Info().Msgf("Starting osm-webhook %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 
@@ -49,25 +61,28 @@ func main() {
 
 	stop := signals.RegisterExitHandlers()
 
-	httpServer := httpserver.NewHTTPServer(uint16(*port))
+	cert, _ := tls.LoadX509KeyPair("", "")
+	serveMux := http.NewServeMux()
+	server := &http.Server{
+		Addr:    fmt.Sprint(":", *port),
+		Handler: serveMux,
+		TLSConfig: &tls.Config{
+			Certificates: []tls.Certificate{cert},
+		},
+	}
 
-	httpServer.AddHandler("/version", version.GetVersionHandler())
-
-	httpServer.AddHandler("/", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	serveMux.Handle("/version", version.GetVersionHandler())
+	serveMux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		fmt.Fprint(w, "hello world")
 	}))
-
-	// TODO: add health/readiness probes
-	httpServer.AddHandlers(map[string]http.Handler{
-		"/health/ready": health.ReadinessHandler(nil, nil),
-		"/health/alive": health.LivenessHandler(nil, nil),
-	})
+	serveMux.Handle("/health/ready", health.ReadinessHandler(nil, nil))
+	serveMux.Handle("/health/alive", health.LivenessHandler(nil, nil))
 
 	// TODO: Do we need to add metrics stuff?
 
 	// TODO: Add SSL Certs
 
-	err := httpServer.Start()
+	err := server.ListenAndServeTLS("", "")
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Failed to start OSM metrics/probes HTTP server")
 	}
