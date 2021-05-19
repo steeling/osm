@@ -391,6 +391,12 @@ nodeRegistration:
 		return errors.Wrapf(err, "failed to create %s client", policyV1alpha1.SchemeGroupVersion.String())
 	}
 
+	policyClient, err := policyClientset.NewForConfig(kubeConfig)
+
+	if err != nil {
+		return errors.Wrap(err, "failed to create v1alpha policy client")
+	}
+
 	td.RestConfig = kubeConfig
 	td.Client = clientset
 	td.ConfigClient = configClient
