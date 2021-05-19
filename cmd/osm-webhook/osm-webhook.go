@@ -61,13 +61,12 @@ func main() {
 
 	stop := signals.RegisterExitHandlers()
 
-	cert, _ := tls.LoadX509KeyPair("", "")
 	serveMux := http.NewServeMux()
 	server := &http.Server{
 		Addr:    fmt.Sprint(":", *port),
 		Handler: serveMux,
 		TLSConfig: &tls.Config{
-			Certificates: []tls.Certificate{cert},
+			Certificates: []tls.Certificate{},
 		},
 	}
 
