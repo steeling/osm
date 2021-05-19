@@ -15,8 +15,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/version"
 	"github.com/spf13/pflag"
-	"k8s.io/api/admission/v1beta1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
@@ -39,16 +37,6 @@ func parseFlags() error {
 		return err
 	}
 	_ = flag.CommandLine.Parse([]string{})
-	return nil
-}
-
-func HandleAdmission(review *v1beta1.AdmissionReview) error {
-	review.Response = &v1beta1.AdmissionResponse{
-		Allowed: true,
-		Result: &v1.Status{
-			Message: "Welcome aboard!",
-		},
-	}
 	return nil
 }
 
