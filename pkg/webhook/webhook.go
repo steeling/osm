@@ -1,4 +1,3 @@
-// Package webhook implements utility routines related to Kubernetes' admission webhooks.
 package webhook
 
 import (
@@ -12,17 +11,7 @@ import (
 
 // GetAdmissionRequestBody returns the body of the admission request
 func GetAdmissionRequestBody(w http.ResponseWriter, req *http.Request) ([]byte, error) {
-	emptyBodyError := func() ([]byte, error) {
-		http.Error(w, errEmptyAdmissionRequestBody.Error(), http.StatusBadRequest)
-		log.Error().Err(errEmptyAdmissionRequestBody).Msgf("Responded to admission request with HTTP %v", http.StatusBadRequest)
-
-		return nil, errEmptyAdmissionRequestBody
-	}
-
-	if req.Body == nil {
-		return emptyBodyError()
-	}
-
+	defer req.Body.Close()
 	admissionRequestBody, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -31,14 +20,22 @@ func GetAdmissionRequestBody(w http.ResponseWriter, req *http.Request) ([]byte, 
 	}
 
 	if len(admissionRequestBody) == 0 {
-		return emptyBodyError()
+		http.Error(w, errEmptyAdmissionRequestBody.Error(), http.StatusBadRequest)
+		log.Error().Err(errEmptyAdmissionRequestBody).Msgf("Responded to admission request with HTTP %v", http.StatusBadRequest)
+
+		return nil, errEmptyAdmissionRequestBody
 	}
 
 	return admissionRequestBody, nil
 }
 
-// AdmissionError wraps error as AdmissionResponse
+// // AdmissionError wraps error as AdmissionResponse
 func AdmissionError(err error) *admissionv1.AdmissionResponse {
+	if err == nil {
+		return &admissionv1.AdmissionResponse{
+			Allowed: true,
+		}
+	}
 	return &admissionv1.AdmissionResponse{
 		Result: &metav1.Status{
 			Message: err.Error(),
