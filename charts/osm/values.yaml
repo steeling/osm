@@ -31,10 +31,6 @@ OpenServiceMesh:
     replicaCount: 1
     # -- Configurable port exposed for `osm-webhook`
     port: 9093
-    image:
-      registry: openservicemesh
-      pullPolicy: IfNotPresent
-      tag: latest
     resource:
       limits:
         cpu: "1.5"

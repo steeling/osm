@@ -22,7 +22,8 @@ spec:
   {{- end }}
       annotations:
         prometheus.io/scrape: 'true'
-        prometheus.io/port: '9091'
+        prometheus.io/port: "{{ .Values.OpenServiceMesh.osmwebhook.port }}"
+        openservicemesh.io/sidecar-injection: 'disabled'
     spec:
       serviceAccountName: {{ .Release.Name }}
       {{- if and (not (.Capabilities.APIVersions.Has "security.openshift.io/v1")) .Values.OpenServiceMesh.pspEnabled }}
@@ -33,14 +34,15 @@ spec:
         kubernetes.io/os: linux
       containers:
         - name: osm-webhook
-          image: "{{ .Values.OpenServiceMesh.osmwebhook.image.registry }}/osm-webhook:{{ .Values.OpenServiceMesh.osmwebhook.image.tag }}"
-          imagePullPolicy: {{ .Values.OpenServiceMesh.osmwebhook.image.pullPolicy }}
+          image: "{{ .Values.OpenServiceMesh.image.registry }}/osm-webhook:{{ .Values.OpenServiceMesh.image.tag }}"
+          imagePullPolicy: {{ .Values.OpenServiceMesh.image.pullPolicy }}
           ports:
-            - name: "metrics"
-              containerPort: 9091
             - name: "osm-webhook"
               containerPort: {{ .Values.OpenServiceMesh.osmwebhook.port }}
           command: ['/osm-webhook']
+          env:
+            - name: OSM_WEBHOOK_PORT
+              value: "{{ .Values.OpenServiceMesh.osmwebhook.port }}"
           resources:
             limits:
               cpu: "{{.Values.OpenServiceMesh.osmwebhook.resource.limits.cpu}}"
@@ -54,14 +56,15 @@ spec:
             httpGet:
               scheme: HTTP
               path: /health/ready
-              port: 9091
+              port: {{ .Values.OpenServiceMesh.osmwebhook.port }}
           livenessProbe:
             initialDelaySeconds: 1
             timeoutSeconds: 5
             httpGet:
               scheme: HTTP
               path: /health/alive
-              port: 9091
+              port: {{ .Values.OpenServiceMesh.osmwebhook.port }}
+
     {{- if .Values.OpenServiceMesh.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.OpenServiceMesh.imagePullSecrets | indent 8 }}
