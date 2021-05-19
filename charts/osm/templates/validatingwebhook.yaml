@@ -9,7 +9,7 @@ webhooks:
 - name: osm-config-webhook.k8s.io
   clientConfig:
     service:
-      name: osm-config-validator
+      name: osm-webhook
       namespace: {{ include "osm.namespace" . }}
       path: /validate-webhook
       port: 9093

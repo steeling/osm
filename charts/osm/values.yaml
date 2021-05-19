@@ -25,6 +25,22 @@ OpenServiceMesh:
         cpu: "0.5"
         memory: "128M"
     podLabels: {}
+  osmwebhook:
+    # -- `osm-webhook` replicas
+    replicaCount: 1
+    image:
+      registry: openservicemesh
+      pullPolicy: IfNotPresent
+      tag: latest
+    resource:
+      limits:
+        cpu: "1.5"
+        memory: "512M"
+      requests:
+        cpu: "0.5"
+        memory: "128M"
+    podLabels: {}
+
   prometheus:
     # -- Resource limits for prometheus instance
     resources:

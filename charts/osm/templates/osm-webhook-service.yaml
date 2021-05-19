@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: osm-webhook
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-webhook
+spec:
+  ports:
+    - name: config-webhook
+      port: 9093
+      targetPort: 9093
+  selector:
+    app: osm-webhook
