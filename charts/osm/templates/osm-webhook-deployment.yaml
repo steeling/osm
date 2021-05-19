@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: osm-webhook
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-webhook
+    meshName: {{ .Values.OpenServiceMesh.meshName }}
+spec:
+  replicas: {{ .Values.OpenServiceMesh.osmwebhook.replicaCount }}
+  selector:
+    matchLabels:
+      app: osm-webhook
+  template:
+    metadata:
+      labels:
+        {{- include "osm.labels" . | nindent 8 }}
+        app: osm-webhook
+  {{- if .Values.OpenServiceMesh.osmwebhook.podLabels }}
+  {{- toYaml .Values.OpenServiceMesh.osmwebhook.podLabels | nindent 8 }}
+  {{- end }}
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9091'
+    spec:
+      serviceAccountName: {{ .Release.Name }}
+      {{- if and (not (.Capabilities.APIVersions.Has "security.openshift.io/v1")) .Values.OpenServiceMesh.pspEnabled }}
+      {{- include "restricted.securityContext" . | nindent 6 }}
+      {{- end }}
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
+      containers:
+        - name: osm-webhook
+          image: "{{ .Values.OpenServiceMesh.osmwebhook.image.registry }}/osm-webhook:{{ .Values.OpenServiceMesh.osmwebhook.image.tag }}"
+          imagePullPolicy: {{ .Values.OpenServiceMesh.osmwebhook.image.pullPolicy }}
+          ports:
+            - name: "metrics"
+              containerPort: 9091
+            - name: "osm-webhook"
+              containerPort: {{ .Values.OpenServiceMesh.osmwebhook.port }}
+          command: ['/osm-webhook']
+          resources:
+            limits:
+              cpu: "{{.Values.OpenServiceMesh.osmwebhook.resource.limits.cpu}}"
+              memory: "{{.Values.OpenServiceMesh.osmwebhook.resource.limits.memory}}"
+            requests:
+              cpu: "{{.Values.OpenServiceMesh.osmwebhook.resource.requests.cpu}}"
+              memory: "{{.Values.OpenServiceMesh.osmwebhook.resource.requests.memory}}"
+          readinessProbe:
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            httpGet:
+              scheme: HTTP
+              path: /health/ready
+              port: 9091
+          livenessProbe:
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            httpGet:
+              scheme: HTTP
+              path: /health/alive
+              port: 9091
+    {{- if .Values.OpenServiceMesh.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.OpenServiceMesh.imagePullSecrets | indent 8 }}
+    {{- end }}
