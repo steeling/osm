@@ -7,15 +7,18 @@ import (
 	. "github.com/onsi/gomega"
 	policy "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	. "github.com/openservicemesh/osm/tests/framework"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
 	validTestPort      = 6969
 	validTestProtocol  = "https"
-	validtestKind      = "ServiceAccount"
+	validTestKind      = "ServiceAccount"
 	validTestName      = "egresstestsourcespec"
 	validTestNamespace = "egresstestsourcespec"
+	invalidTestName    = "egressbadtestsourcespec"
+	invalidTestKind    = "YouShallNotPass"
 )
 
 var _ = OSMDescribe("Test Submit Egress Policy",
@@ -30,7 +33,7 @@ var _ = OSMDescribe("Test Submit Egress Policy",
 				ctx := context.TODO()
 				egressIn := new(policy.Egress)
 				egressIn.SetName(validTestName)
-				egressIn.Spec.Sources = []policy.SourceSpec{{Kind: validtestKind, Name: validTestName, Namespace: validTestName}}
+				egressIn.Spec.Sources = []policy.SourceSpec{{Kind: validTestKind, Name: validTestName, Namespace: validTestName}}
 				egressIn.Spec.Ports = []policy.PortSpec{{Number: validTestPort, Protocol: validTestProtocol}}
 				ns := Td.OsmNamespace
 				Expect(ctx).ShouldNot(BeNil())
@@ -44,6 +47,18 @@ var _ = OSMDescribe("Test Submit Egress Policy",
 				Expect(palpha1).ShouldNot(BeNil())
 				egressOut, err := palpha1.PolicyV1alpha1().Egresses(Td.OsmNamespace).Create(ctx, egressIn, v1.CreateOptions{})
 				Expect(err).ShouldNot(HaveOccurred())
+				Expect(egressOut).ShouldNot(BeNil())
+				//now test spec Matches. Should fail
+				derr = palpha1.PolicyV1alpha1().Egresses(Td.OsmNamespace).Delete(ctx, invalidTestName, v1.DeleteOptions{})
+				if derr != nil {
+					//don't error because name is not there first test but report
+					GinkgoWriter.Write([]byte("Error deleting last test service:\n" + derr.Error()))
+				}
+				egressIn.SetName(invalidTestName)
+				egressIn.Spec.Sources = []policy.SourceSpec{{Kind: validTestKind, Name: invalidTestName, Namespace: validTestName}}
+				egressIn.Spec.Matches = []corev1.TypedLocalObjectReference{{Kind: invalidTestKind}}
+				egressOut, err = palpha1.PolicyV1alpha1().Egresses(Td.OsmNamespace).Create(ctx, egressIn, v1.CreateOptions{})
+				Expect(err).Should(HaveOccurred())
 				Expect(egressOut).ShouldNot(BeNil())
 			})
 		})
