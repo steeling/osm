@@ -19,6 +19,7 @@ func init() {
 		Version: "v1alpha1",
 	}
 	RegisterValidator(gvk.String(), EgressValidator)
+	RegisterValidator(gvk.String(), DurationValidator)
 }
 
 func EgressValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
