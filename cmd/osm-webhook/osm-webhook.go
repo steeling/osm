@@ -3,7 +3,9 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
+	"errors"
 	"flag"
 	"fmt"
 	"net/http"
@@ -20,6 +22,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/version"
 	"github.com/spf13/pflag"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -32,7 +36,6 @@ const (
 
 var (
 	verbosity          string
-	meshName           string
 	kubeConfigFile     string
 	osmNamespace       string
 	osmMeshConfigName  string
@@ -53,11 +56,23 @@ var (
 func init() {
 	flags.StringVarP(&verbosity, "verbosity", "v", "info", "Set log verbosity level")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
-	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
+	flags.StringVar(&osmNamespace, "osm-namespace", "osm-system", "Namespace to which OSM belongs to.")
 	flags.StringVar(&osmMeshConfigName, "osm-config-name", "osm-mesh-config", "Name of the OSM MeshConfig")
-	flags.StringVar(&meshName, "mesh-name", "", "OSM mesh name")
+	// Generic certificate manager/provider options
 	flags.StringVar(&certProviderKind, "certificate-manager", providers.TresorKind.String(), fmt.Sprintf("Certificate manager, one of [%v]", providers.ValidCertificateProviders))
-	flags.StringVar(&caBundleSecretName, "ca-bundle-secret-name", "", "Name of the Kubernetes Secret for the OSM CA bundle")
+	flags.StringVar(&caBundleSecretName, "ca-bundle-secret-name", "osm-ca-bundle", "Name of the Kubernetes Secret for the OSM CA bundle")
+
+	// Vault certificate manager/provider options
+	flags.StringVar(&vaultOptions.VaultProtocol, "vault-protocol", "http", "Host name of the Hashi Vault")
+	flags.StringVar(&vaultOptions.VaultHost, "vault-host", "vault.default.svc.cluster.local", "Host name of the Hashi Vault")
+	flags.StringVar(&vaultOptions.VaultToken, "vault-token", "", "Secret token for the the Hashi Vault")
+	flags.StringVar(&vaultOptions.VaultRole, "vault-role", "openservicemesh", "Name of the Vault role dedicated to Open Service Mesh")
+	flags.IntVar(&vaultOptions.VaultPort, "vault-port", 8200, "Port of the Hashi Vault")
+
+	// Cert-manager certificate manager/provider options
+	flags.StringVar(&certManagerOptions.IssuerName, "cert-manager-issuer-name", "osm-ca", "cert-manager issuer name")
+	flags.StringVar(&certManagerOptions.IssuerKind, "cert-manager-issuer-kind", "Issuer", "cert-manager issuer kind")
+	flags.StringVar(&certManagerOptions.IssuerGroup, "cert-manager-issuer-group", "cert-manager.io", "cert-manager issuer group")
 }
 
 func parseFlags() error {
@@ -71,21 +86,35 @@ func parseFlags() error {
 func main() {
 	log.Info().Msgf("Starting osm-webhook %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 
+	if err := parseFlags(); err != nil {
+		log.Fatal().Err(err).Msg("Error parsing cmd line arguments")
+	}
+	
 	if err := logger.SetLogLevel(verbosity); err != nil {
 		log.Fatal().Err(err).Msg("Error setting log level")
 		return
 	}
 
+	// Initialize kube config and client
+	kubeConfig, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Error creating kube config (kubeconfig=%s)", kubeConfigFile)
+	}
+	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
+
+	// Initialize the generic Kubernetes event recorder and associate it with the osm-webhook pod resource
+	webhookPod, err := getWebhookPod(kubeClient)
+	if err != nil {
+		log.Fatal().Msg("Error fetching osm-webhook pod")
+	}
+
+	if err := events.GenericEventRecorder().Initialize(webhookPod, kubeClient, osmNamespace); err != nil {
+		log.Fatal().Msg("Error initializing generic event recorder")
+	}
+
 	stop := signals.RegisterExitHandlers()
 
 	serveMux := http.NewServeMux()
-	server := &http.Server{
-		Addr:    fmt.Sprint(":", *port),
-		Handler: serveMux,
-		TLSConfig: &tls.Config{
-			Certificates: []tls.Certificate{},
-		},
-	}
 
 	serveMux.Handle("/version", version.GetVersionHandler())
 	serveMux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -98,18 +127,37 @@ func main() {
 
 	cert := getCertificate(stop)
 
-	// #nosec G402
-	server.TLSConfig = &tls.Config{
-		Certificates: []tls.Certificate{cert},
+	server := &http.Server{
+		Addr:    fmt.Sprint(":", *port),
+		Handler: serveMux,
+		TLSConfig: &tls.Config{
+			Certificates: []tls.Certificate{cert},
+		},
 	}
 
-	err := server.ListenAndServeTLS("", "")
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to start OSM metrics/probes HTTP server")
+	if err := server.ListenAndServeTLS("", ""); err != nil {
+		log.Fatal().Err(err).Msgf("Failed to start OSM metrics/probes HTTP server")
 	}
 
 	<-stop
 	log.Info().Msgf("Stopping osm-webhook %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
+}
+
+// getWebhookPod returns the osm-webhook pod spec.
+// The pod name is inferred from the 'WEBHOOK_POD_NAME' env variable which is set during deployment.
+func getWebhookPod(kubeClient kubernetes.Interface) (*corev1.Pod, error) {
+	podName := os.Getenv("WEBHOOK_POD_NAME")
+	if podName == "" {
+		return nil, errors.New("WEBHOOK_POD_NAME env variable cannot be empty")
+	}
+
+	pod, err := kubeClient.CoreV1().Pods(osmNamespace).Get(context.TODO(), podName, metav1.GetOptions{})
+	if err != nil {
+		log.Error().Err(err).Msgf("Error retrieving osm-webhook pod %s", podName)
+		return nil, err
+	}
+
+	return pod, nil
 }
 
 func getCertificate(stop <-chan struct{}) tls.Certificate {
@@ -146,7 +194,7 @@ func getCertificate(stop <-chan struct{}) tls.Certificate {
 		log.Error().Err(err).Msgf("Error issuing certificate for the validating webhook: %+v", err)
 	}
 
-	webhookHandlerCert, err = providers.GetCertificateFromSecret(osmNamespace, WebhookCertificateSecretName, webhookHandlerCert, kubeClient)
+	webhookHandlerCert, err = providers.GetCertificateFromSecret(osmNamespace, "validating-webhook-cert-secret", webhookHandlerCert, kubeClient)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error fetching webhook certificate from k8s secret: %s", err)
 	}

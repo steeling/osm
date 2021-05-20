@@ -3,7 +3,7 @@ kind: ValidatingWebhookConfiguration
 metadata:
   labels:
     {{- include "osm.labels" . | nindent 4 }}
-    app: osm-controller
+    app: osm-webhook
   name: {{.Values.OpenServiceMesh.webhookConfigNamePrefix}}-{{.Values.OpenServiceMesh.meshName}}
 webhooks:
 - name: osm-config-webhook.k8s.io
@@ -25,12 +25,13 @@ webhooks:
       app.kubernetes.io/version: {{ .Chart.AppVersion }}
   rules:
     - apiGroups:
-        - ""
+        - "policy.osm.io"
       apiVersions:
-        - v1
+        - v1alpha1
       operations:
         - UPDATE
+        - CREATE
       resources:
-        - configmaps
+        - "*/*"
   sideEffects: None
   admissionReviewVersions: ["v1"]

@@ -43,7 +43,7 @@ spec:
           command: ['/osm-injector']
           args: [
             "--verbosity", "{{.Values.OpenServiceMesh.controllerLogLevel}}",
-            "--osm-namespace", "{{ include "osm.namespace" . }}",
+            "--osm-namespace", '{{ include "osm.namespace" . }}',
             "--mesh-name", "{{.Values.OpenServiceMesh.meshName}}",
             "--webhook-config-name", "{{.Values.OpenServiceMesh.webhookConfigNamePrefix}}-{{.Values.OpenServiceMesh.meshName}}",
             "--ca-bundle-secret-name", "{{.Values.OpenServiceMesh.caBundleSecretName}}",
