@@ -27,6 +27,7 @@ var _ = OSMDescribe("Test Submit Mesh Config Policy",
 				meshIn := new(config.MeshConfig)
 				meshClient := Td.ConfigClient
 				meshIn.Name = testMeshName
+				//do simplest test with just name added
 				meshRet, err := meshClient.ConfigV1alpha1().MeshConfigs(Td.OsmNamespace).Create(ctx, meshIn, v1.CreateOptions{})
 				Expect(meshRet).ShouldNot(BeNil())
 				Expect(err).ShouldNot(HaveOccurred())
