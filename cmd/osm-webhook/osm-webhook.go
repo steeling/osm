@@ -9,16 +9,39 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/providers"
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/health"
+	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/version"
 	"github.com/spf13/pflag"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
+)
+
+const (
+	// validatingWebhookServiceName is the name of the OSM Validating Webhook service
+	validatingWebhookServiceName = "osm-webhook"
+	WebhookCertificateSecretName = "validating-webhook-cert-secret"
 )
 
 var (
-	verbosity string
+	verbosity          string
+	meshName           string
+	kubeConfigFile     string
+	osmNamespace       string
+	osmMeshConfigName  string
+	certProviderKind   string
+	caBundleSecretName string
+
+	tresorOptions      providers.TresorOptions
+	vaultOptions       providers.VaultOptions
+	certManagerOptions providers.CertManagerOptions
 )
 
 var (
@@ -29,7 +52,12 @@ var (
 
 func init() {
 	flags.StringVarP(&verbosity, "verbosity", "v", "info", "Set log verbosity level")
-
+	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
+	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
+	flags.StringVar(&osmMeshConfigName, "osm-config-name", "osm-mesh-config", "Name of the OSM MeshConfig")
+	flags.StringVar(&meshName, "mesh-name", "", "OSM mesh name")
+	flags.StringVar(&certProviderKind, "certificate-manager", providers.TresorKind.String(), fmt.Sprintf("Certificate manager, one of [%v]", providers.ValidCertificateProviders))
+	flags.StringVar(&caBundleSecretName, "ca-bundle-secret-name", "", "Name of the Kubernetes Secret for the OSM CA bundle")
 }
 
 func parseFlags() error {
@@ -45,6 +73,7 @@ func main() {
 
 	if err := logger.SetLogLevel(verbosity); err != nil {
 		log.Fatal().Err(err).Msg("Error setting log level")
+		return
 	}
 
 	stop := signals.RegisterExitHandlers()
@@ -67,7 +96,12 @@ func main() {
 
 	// TODO: Do we need to add metrics stuff?
 
-	// TODO: Add SSL Certs
+	cert := getCertificate(stop)
+
+	// #nosec G402
+	server.TLSConfig = &tls.Config{
+		Certificates: []tls.Certificate{cert},
+	}
 
 	err := server.ListenAndServeTLS("", "")
 	if err != nil {
@@ -76,5 +110,52 @@ func main() {
 
 	<-stop
 	log.Info().Msgf("Stopping osm-webhook %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
+}
 
+func getCertificate(stop <-chan struct{}) tls.Certificate {
+	// Initialize kube config and client
+	kubeConfig, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Error creating kube config (kubeconfig=%s)", kubeConfigFile)
+	}
+	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
+
+	// Initialize Configurator to retrieve mesh specific config
+	cfg := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName)
+	meshConfig, err := cfg.GetMeshConfigJSON()
+	if err != nil {
+		log.Error().Err(err).Msgf("Error parsing MeshConfig %s", osmMeshConfigName)
+	}
+	log.Info().Msgf("Initial MeshConfig %s: %v", osmMeshConfigName, meshConfig)
+
+	// Intitialize certificate manager/provider
+	certProviderConfig := providers.NewCertificateProviderConfig(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
+		caBundleSecretName, tresorOptions, vaultOptions, certManagerOptions)
+
+	certManager, _, err := certProviderConfig.GetCertificateManager()
+	if err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
+			"Error initializing certificate manager of kind %s", certProviderKind)
+	}
+
+	webhookHandlerCert, err := certManager.IssueCertificate(
+		certificate.CommonName(fmt.Sprintf("%s.%s.svc", validatingWebhookServiceName, osmNamespace)),
+		constants.XDSCertificateValidityPeriod)
+
+	if err != nil {
+		log.Error().Err(err).Msgf("Error issuing certificate for the validating webhook: %+v", err)
+	}
+
+	webhookHandlerCert, err = providers.GetCertificateFromSecret(osmNamespace, WebhookCertificateSecretName, webhookHandlerCert, kubeClient)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error fetching webhook certificate from k8s secret: %s", err)
+	}
+
+	// Generate a key pair from your pem-encoded cert and key ([]byte).
+	cert, err := tls.X509KeyPair(webhookHandlerCert.GetCertificateChain(), webhookHandlerCert.GetPrivateKey())
+	if err != nil {
+		log.Error().Err(err).Msg("Error parsing webhook certificate")
+	}
+
+	return cert
 }
