@@ -21,6 +21,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/version"
+	"github.com/openservicemesh/osm/pkg/webhook"
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -89,7 +90,7 @@ func main() {
 	if err := parseFlags(); err != nil {
 		log.Fatal().Err(err).Msg("Error parsing cmd line arguments")
 	}
-	
+
 	if err := logger.SetLogLevel(verbosity); err != nil {
 		log.Fatal().Err(err).Msg("Error setting log level")
 		return
@@ -115,11 +116,10 @@ func main() {
 	stop := signals.RegisterExitHandlers()
 
 	serveMux := http.NewServeMux()
+	v := webhook.New()
 
 	serveMux.Handle("/version", version.GetVersionHandler())
-	serveMux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		fmt.Fprint(w, "hello world")
-	}))
+	serveMux.HandleFunc("/", v.HandleValidation)
 	serveMux.Handle("/health/ready", health.ReadinessHandler(nil, nil))
 	serveMux.Handle("/health/alive", health.LivenessHandler(nil, nil))
 
