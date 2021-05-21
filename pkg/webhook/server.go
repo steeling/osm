@@ -51,10 +51,10 @@ func FakeValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionRes
 	o, n := &FakeObj{}, &FakeObj{}
 	// If you need to compare against the old object
 	if err := json.NewDecoder(bytes.NewBuffer(req.OldObject.Raw)).Decode(o); err != nil {
-		returrn nil, err
+		return nil, err
 	}
 
-	if err := json.NewDecoder(bytes.NewBuffer(req.OldObject.Raw)).Decode(n); err != nil {
+	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(n); err != nil {
 		returrn nil, err
 	}
 
@@ -73,8 +73,12 @@ type ValidatingWebhookServer struct {
 
 // New returns a ValidatingWebhookServer with the defaultValidators that were previously registered.
 func New() *ValidatingWebhookServer {
+	vCopy := make(map[string]Validator, len(defaultValidators))
+	for k, v := range defaultValidators {
+		vCopy[k] = v
+	}
 	return &ValidatingWebhookServer{
-		Validators: defaultValidators,
+		Validators: vCopy,
 	}
 }
 
