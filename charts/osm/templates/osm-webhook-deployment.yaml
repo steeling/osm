@@ -40,9 +40,20 @@ spec:
             - name: "osm-webhook"
               containerPort: {{ .Values.OpenServiceMesh.osmwebhook.port }}
           command: ['/osm-webhook']
-          env:
-            - name: OSM_WEBHOOK_PORT
-              value: "{{ .Values.OpenServiceMesh.osmwebhook.port }}"
+          args: [
+            "--port", "{{ .Values.OpenServiceMesh.osmwebhook.port }}",
+            "--ca-bundle-secret-name", "{{.Values.OpenServiceMesh.caBundleSecretName}}",
+            "--certificate-manager", "{{.Values.OpenServiceMesh.certificateManager}}",
+            {{ if eq .Values.OpenServiceMesh.certificateManager "vault" }}
+            "--vault-host", "{{.Values.OpenServiceMesh.vault.host}}",
+            "--vault-protocol", "{{.Values.OpenServiceMesh.vault.protocol}}",
+            "--vault-token", "{{.Values.OpenServiceMesh.vault.token}}",
+            {{- end }}
+            "--cert-manager-issuer-name", "{{.Values.OpenServiceMesh.certmanager.issuerName}}",
+            "--cert-manager-issuer-kind", "{{.Values.OpenServiceMesh.certmanager.issuerKind}}",
+            "--cert-manager-issuer-group", "{{.Values.OpenServiceMesh.certmanager.issuerGroup}}",
+            "--osm-namespace", '{{ include "osm.namespace" . }}',
+            ]
           resources:
             limits:
               cpu: "{{.Values.OpenServiceMesh.osmwebhook.resource.limits.cpu}}"
@@ -54,14 +65,14 @@ spec:
             initialDelaySeconds: 1
             timeoutSeconds: 5
             httpGet:
-              scheme: HTTP
+              scheme: HTTPS
               path: /health/ready
               port: {{ .Values.OpenServiceMesh.osmwebhook.port }}
           livenessProbe:
             initialDelaySeconds: 1
             timeoutSeconds: 5
-            httpGet:
-              scheme: HTTP
+            httpGet: 
+              scheme: HTTPS
               path: /health/alive
               port: {{ .Values.OpenServiceMesh.osmwebhook.port }}
 
