@@ -12,14 +12,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const MinDuration = time.Second
+
 func init() {
-	gvk := metav1.GroupVersionKind{
+	egressGvk := metav1.GroupVersionKind{
 		Kind:    "Egress",
-		Group:   "policy.osm.io",
+		Group:   "policy.openservicemesh.io",
 		Version: "v1alpha1",
 	}
-	RegisterValidator(gvk.String(), EgressValidator)
-	RegisterValidator(gvk.String(), DurationValidator)
+	meshConfigGvk := metav1.GroupVersionKind{
+		Kind:    "MeshConfig",
+		Group:   "config.openservicemesh.io",
+		Version: "v1alpha1",
+	}
+	RegisterValidator(egressGvk.String(), EgressValidator)
+	RegisterValidator(meshConfigGvk.String(), MeshConfigValidator)
 }
 
 func EgressValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
@@ -30,18 +37,18 @@ func EgressValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionR
 
 	for _, m := range egress.Spec.Matches {
 		if m.Kind != "HTTPRouteGroup" {
-			return nil, fmt.Errorf("Egress spec matches kind is %s when it should be HTTPRouteGroup", m.Kind)
+			return nil, fmt.Errorf("Expected Matches.Kind to be 'HTTPRouteGroup', got: %s", m.Kind)
 		}
 
 		if *m.APIGroup != "specs.smi-spec.io/v1alpha4" {
-			return nil, fmt.Errorf("Egress spec matches APIGroup is %s when it should be specs.smi-spec.io/v1alpha4", *m.APIGroup)
+			return nil, fmt.Errorf("Expected Matches.APIGroup to be specs.smi-spec.io/v1alpha4, got: %s", *m.APIGroup)
 		}
 	}
 
 	return nil, nil
 }
 
-func DurationValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+func MeshConfigValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
 	config := &cv1alpha1.MeshConfig{}
 	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(config); err != nil {
 		return nil, err
@@ -49,7 +56,11 @@ func DurationValidator(req *admissionv1.AdmissionRequest) (*admissionv1.Admissio
 
 	d, err := time.ParseDuration(config.Spec.Certificate.ServiceCertValidityDuration)
 	if err != nil {
-		return nil, fmt.Errorf("ServiceCertValidityDuration %s is not valid", d)
+		return nil, fmt.Errorf("Certificate.ServiceCertValidityDuration %s is not valid", config.Spec.Certificate.ServiceCertValidityDuration)
+	}
+
+	if d < MinDuration {
+		return nil, fmt.Errorf("Certificate.ServiceCertValidityDuration %d is lower than %d", d, MinDuration)
 	}
 
 	return nil, nil
