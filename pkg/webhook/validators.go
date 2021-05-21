@@ -41,7 +41,7 @@ func EgressValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionR
 		}
 
 		if *m.APIGroup != "specs.smi-spec.io/v1alpha4" {
-			return nil, fmt.Errorf("Expected Matches.APIGroup to be specs.smi-spec.io/v1alpha4, got: %s", *m.APIGroup)
+			return nil, fmt.Errorf("Expected Matches.APIGroup to be 'specs.smi-spec.io/v1alpha4', got: %s", *m.APIGroup)
 		}
 	}
 
