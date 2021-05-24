@@ -137,7 +137,7 @@ func main() {
 	// Generate a key pair from your pem-encoded cert and key ([]byte).
 	cert, err := tls.X509KeyPair(certificater.GetCertificateChain(), certificater.GetPrivateKey())
 	if err != nil {
-		log.Error().Err(err).Msg("Error parsing webhook certificate")
+		log.Fatal().Err(err).Msg("Error parsing webhook certificate")
 	}
 
 	server := &http.Server{
