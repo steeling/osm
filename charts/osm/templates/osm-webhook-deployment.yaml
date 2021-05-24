@@ -54,6 +54,12 @@ spec:
             "--cert-manager-issuer-group", "{{.Values.OpenServiceMesh.certmanager.issuerGroup}}",
             "--osm-namespace", '{{ include "osm.namespace" . }}',
             ]
+          env:
+            # The WEBHOOK_POD_NAME env variable sets pod name dynamically, used by osm-injector to register events
+            - name: WEBHOOK_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
           resources:
             limits:
               cpu: "{{.Values.OpenServiceMesh.osmwebhook.resource.limits.cpu}}"

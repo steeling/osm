@@ -6,7 +6,7 @@ metadata:
     app: osm-webhook
   name: {{.Values.OpenServiceMesh.webhookConfigNamePrefix}}-{{.Values.OpenServiceMesh.meshName}}
 webhooks:
-- name: osm-config-webhook.k8s.io
+- name: osm-validate-webhook.k8s.io
   clientConfig:
     service:
       name: osm-webhook

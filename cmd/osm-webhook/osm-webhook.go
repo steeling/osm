@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -23,8 +24,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/version"
 	"github.com/openservicemesh/osm/pkg/webhook"
 	"github.com/spf13/pflag"
+	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -33,6 +36,7 @@ const (
 	// validatingWebhookServiceName is the name of the OSM Validating Webhook service
 	validatingWebhookServiceName = "osm-webhook"
 	WebhookCertificateSecretName = "validating-webhook-cert-secret"
+	ValidatingWebhookName        = "osm-validate-webhook.k8s.io"
 )
 
 var (
@@ -42,6 +46,7 @@ var (
 	osmMeshConfigName  string
 	certProviderKind   string
 	caBundleSecretName string
+	webhookConfigName  string
 
 	tresorOptions      providers.TresorOptions
 	vaultOptions       providers.VaultOptions
@@ -59,6 +64,7 @@ func init() {
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.StringVar(&osmNamespace, "osm-namespace", "osm-system", "Namespace to which OSM belongs to.")
 	flags.StringVar(&osmMeshConfigName, "osm-config-name", "osm-mesh-config", "Name of the OSM MeshConfig")
+	flags.StringVar(&webhookConfigName, "webhook-config-name", "osm-webhook-osm", "Name of the ValidatingWebhookConfiguration to be configured by osm-injector")
 	// Generic certificate manager/provider options
 	flags.StringVar(&certProviderKind, "certificate-manager", providers.TresorKind.String(), fmt.Sprintf("Certificate manager, one of [%v]", providers.ValidCertificateProviders))
 	flags.StringVar(&caBundleSecretName, "ca-bundle-secret-name", "osm-ca-bundle", "Name of the Kubernetes Secret for the OSM CA bundle")
@@ -85,6 +91,7 @@ func parseFlags() error {
 }
 
 func main() {
+	ctx := context.Background()
 	log.Info().Msgf("Starting osm-webhook %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 
 	if err := parseFlags(); err != nil {
@@ -104,7 +111,7 @@ func main() {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 
 	// Initialize the generic Kubernetes event recorder and associate it with the osm-webhook pod resource
-	webhookPod, err := getWebhookPod(kubeClient)
+	webhookPod, err := getWebhookPod(ctx, kubeClient)
 	if err != nil {
 		log.Fatal().Msg("Error fetching osm-webhook pod")
 	}
@@ -125,7 +132,13 @@ func main() {
 
 	// TODO: Do we need to add metrics stuff?
 
-	cert := getCertificate(stop)
+	certificater := getCertificate(stop)
+
+	// Generate a key pair from your pem-encoded cert and key ([]byte).
+	cert, err := tls.X509KeyPair(certificater.GetCertificateChain(), certificater.GetPrivateKey())
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error parsing webhook certificate")
+	}
 
 	server := &http.Server{
 		Addr:    fmt.Sprint(":", *port),
@@ -134,24 +147,29 @@ func main() {
 			Certificates: []tls.Certificate{cert},
 		},
 	}
-
+	updateValidatingWebhookCABundle(ctx, certificater, webhookConfigName, kubeClient)
+	go func() {
+		<-stop
+		log.Info().Msgf("Stopping osm-webhook %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
+		if err := server.Shutdown(ctx); err != nil {
+			log.Error().Err(err).Msgf("Error shutting down server: %s", err)
+		}
+	}()
 	if err := server.ListenAndServeTLS("", ""); err != nil {
-		log.Fatal().Err(err).Msgf("Failed to start OSM metrics/probes HTTP server")
+		log.Error().Err(err).Msgf("Exiting HTTP server with %s", err)
 	}
 
-	<-stop
-	log.Info().Msgf("Stopping osm-webhook %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 }
 
 // getWebhookPod returns the osm-webhook pod spec.
 // The pod name is inferred from the 'WEBHOOK_POD_NAME' env variable which is set during deployment.
-func getWebhookPod(kubeClient kubernetes.Interface) (*corev1.Pod, error) {
+func getWebhookPod(ctx context.Context, kubeClient kubernetes.Interface) (*corev1.Pod, error) {
 	podName := os.Getenv("WEBHOOK_POD_NAME")
 	if podName == "" {
 		return nil, errors.New("WEBHOOK_POD_NAME env variable cannot be empty")
 	}
 
-	pod, err := kubeClient.CoreV1().Pods(osmNamespace).Get(context.TODO(), podName, metav1.GetOptions{})
+	pod, err := kubeClient.CoreV1().Pods(osmNamespace).Get(ctx, podName, metav1.GetOptions{})
 	if err != nil {
 		log.Error().Err(err).Msgf("Error retrieving osm-webhook pod %s", podName)
 		return nil, err
@@ -160,7 +178,7 @@ func getWebhookPod(kubeClient kubernetes.Interface) (*corev1.Pod, error) {
 	return pod, nil
 }
 
-func getCertificate(stop <-chan struct{}) tls.Certificate {
+func getCertificate(stop <-chan struct{}) certificate.Certificater {
 	// Initialize kube config and client
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
 	if err != nil {
@@ -199,11 +217,47 @@ func getCertificate(stop <-chan struct{}) tls.Certificate {
 		log.Error().Err(err).Msgf("Error fetching webhook certificate from k8s secret: %s", err)
 	}
 
-	// Generate a key pair from your pem-encoded cert and key ([]byte).
-	cert, err := tls.X509KeyPair(webhookHandlerCert.GetCertificateChain(), webhookHandlerCert.GetPrivateKey())
+	return webhookHandlerCert
+}
+
+// updateMutatingWebhookCABundle updates the existing MutatingWebhookConfiguration with the CA this OSM instance runs with.
+// It is necessary to perform this patch because the original MutatingWebhookConfig YAML does not contain the root certificate.
+func updateValidatingWebhookCABundle(ctx context.Context, cert certificate.Certificater, name string, clientSet kubernetes.Interface) error {
+	log.Info().Msgf("going to updating CA Bundle for MutatingWebhookConfiguration %s", name)
+	vwc := clientSet.AdmissionregistrationV1().ValidatingWebhookConfigurations()
+
+	patchJSON, err := json.Marshal(getPartialValidatingWebhookConfiguration(cert, name))
 	if err != nil {
-		log.Error().Err(err).Msg("Error parsing webhook certificate")
+		return err
 	}
 
-	return cert
+	if _, err = vwc.Patch(ctx, name, types.StrategicMergePatchType, patchJSON, metav1.PatchOptions{}); err != nil {
+		log.Error().Err(err).Msgf("Error updating CA Bundle for ValidatingWebhookConfiguration %s", name)
+		return err
+	}
+
+	log.Info().Msgf("Finished updating CA Bundle for MutatingWebhookConfiguration %s", name)
+	return nil
+}
+
+// getPartialValidatingWebhookConfiguration returns only the portion of the MutatingWebhookConfiguration that needs to be updated.
+func getPartialValidatingWebhookConfiguration(cert certificate.Certificater, name string) admissionregv1.ValidatingWebhookConfiguration {
+	return admissionregv1.ValidatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Webhooks: []admissionregv1.ValidatingWebhook{
+			{
+				Name: ValidatingWebhookName,
+				ClientConfig: admissionregv1.WebhookClientConfig{
+					CABundle: cert.GetCertificateChain(),
+				},
+				SideEffects: func() *admissionregv1.SideEffectClass {
+					sideEffect := admissionregv1.SideEffectClassNoneOnDryRun
+					return &sideEffect
+				}(),
+				AdmissionReviewVersions: []string{"v1"},
+			},
+		},
+	}
 }
