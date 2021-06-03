@@ -93,4 +93,8 @@ type Configurator interface {
 
 	// GetInboundExternalAuthConfig returns the External Authentication configuration for incoming traffic, if any
 	GetInboundExternalAuthConfig() auth.ExtAuthConfig
+
+	// GetClusterDomain returns the cluster domain based on the cluster id. ie: for an ID cluster-us-east1, it will
+	// return `cluster.cluster-us-east1`.
+	GetClusterDomain() string
 }

@@ -42,10 +42,22 @@ func (c *Client) GetMeshConfigJSON() (string, error) {
 	return cm, nil
 }
 
+// GetClusterID returns the MeshConfig's ClusterID, used in multicluster setups.
+// This is not the domain, ie: `cluster.ClusterID`. Please use GetClusterDomain for that.
+func (c *Client) GetClusterID() string {
+	return c.getMeshConfig().Spec.ClusterID
+}
+
+// GetClusterDomain returns the domain based on this cluster ID, ie: `cluster.ClusterID`
+func (c *Client) GetClusterDomain() string {
+	return fmt.Sprintf("cluster.%s", c.GetClusterID())
+}
+
 // IsPermissiveTrafficPolicyMode tells us whether the OSM Control Plane is in permissive mode,
 // where all existing traffic is allowed to flow as it is,
 // or it is in SMI Spec mode, in which only traffic between source/destinations
 // referenced in SMI policies is allowed.
+// TODO(steeling): wherever this is called, we want it to return true for the gateway.
 func (c *Client) IsPermissiveTrafficPolicyMode() bool {
 	return c.getMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode
 }

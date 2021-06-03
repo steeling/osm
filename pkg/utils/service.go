@@ -13,6 +13,7 @@ func K8sSvcToMeshSvc(svc *corev1.Service) service.MeshService {
 	return service.MeshService{
 		Namespace: svc.Namespace,
 		Name:      svc.Name,
+		// TODO(steeling) this absolutely needs to get set.
 	}
 }
 

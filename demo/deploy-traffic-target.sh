@@ -33,9 +33,9 @@ spec:
 # Should we ever want to allow traffic from bookthief to bookstore the block below needs
 # uncommented.
 
-# - kind: ServiceAccount
-#   name: bookthief
-#   namespace: "$BOOKTHIEF_NAMESPACE"
+  - kind: ServiceAccount
+    name: bookthief
+    namespace: "$BOOKTHIEF_NAMESPACE"
 
 
 ---
@@ -67,9 +67,9 @@ spec:
 # Should we ever want to allow traffic from bookthief to bookstore the block below needs
 # uncommented.
 
-# - kind: ServiceAccount
-#   name: bookthief
-#   namespace: "$BOOKTHIEF_NAMESPACE"
+  - kind: ServiceAccount
+    name: bookthief
+    namespace: "$BOOKTHIEF_NAMESPACE"
 
 ---
 

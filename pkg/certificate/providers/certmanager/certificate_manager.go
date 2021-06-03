@@ -166,7 +166,7 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 		Subject: pkix.Name{
 			CommonName: cn.String(),
 		},
-		DNSNames: []string{cn.String()},
+		DNSNames: []string{cn.String()}, // TODO(steeling): add all the alt names.
 	}
 
 	csrDER, err := x509.CreateCertificateRequest(rand.Reader, csr, certPrivKey)

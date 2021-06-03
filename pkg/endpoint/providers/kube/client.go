@@ -35,6 +35,9 @@ func (c *Client) GetID() string {
 
 // ListEndpointsForService retrieves the list of IP addresses for the given service
 func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
+	// TODO(steeling) all of the endpoints here need to interact with the OSMCluster field.
+	// That is only query for k8s endpoints if the OSMCluster is: local, the local <ClusterID>, global, or *.
+	// Or more concise.. don't query for Endpoints if it is set to an extneral clusterID.
 	log.Trace().Msgf("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
 	var endpoints []endpoint.Endpoint
 
@@ -101,6 +104,7 @@ func (c Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentit
 func (c Client) GetServicesForServiceAccount(svcAccount identity.K8sServiceAccount) ([]service.MeshService, error) {
 	services := mapset.NewSet()
 
+	// TODO(steeling): also include the remoteservices, or otherwise create a new endpoint provider and put the logic there
 	for _, pod := range c.kubeController.ListPods() {
 		if pod.Namespace != svcAccount.Namespace {
 			continue
@@ -120,8 +124,9 @@ func (c Client) GetServicesForServiceAccount(svcAccount identity.K8sServiceAccou
 
 		for _, svc := range k8sServices {
 			services.Add(service.MeshService{
-				Namespace: pod.Namespace,
-				Name:      svc.Name,
+				Namespace:  pod.Namespace,
+				Name:       svc.Name,
+				OSMCluster: "*", // TODO(steeling) don't hardcode this and potentially set it to the cluster ID.
 			})
 		}
 	}
@@ -143,7 +148,7 @@ func (c Client) GetServicesForServiceAccount(svcAccount identity.K8sServiceAccou
 // GetTargetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
 func (c Client) GetTargetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
 	portToProtocolMap := make(map[uint32]string)
-
+	// TODO(steeling) same comment as line #38.
 	endpoints, err := c.kubeController.GetEndpoints(svc)
 	if err != nil || endpoints == nil {
 		log.Error().Err(err).Msgf("[%s] Error fetching Kubernetes Endpoints from cache", c.providerIdent)
@@ -207,7 +212,7 @@ func (c *Client) getServicesByLabels(podLabels map[string]string, namespace stri
 func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {
 	var endpoints []endpoint.Endpoint
 	var err error
-
+	// TODO(steeling) Same comment as line #38.
 	// Check if the service has been given Cluster IP
 	kubeService := c.kubeController.GetService(svc)
 	if kubeService == nil {

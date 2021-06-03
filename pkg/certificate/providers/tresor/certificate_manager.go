@@ -36,7 +36,7 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 	template := x509.Certificate{
 		SerialNumber: serialNumber,
 
-		DNSNames: []string{string(cn)},
+		DNSNames: []string{string(cn)}, // TODO(steeling): add all the alt names here (remote and global)
 
 		Subject: pkix.Name{
 			CommonName:   string(cn),

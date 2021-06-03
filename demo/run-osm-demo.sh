@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -aueo pipefail
+set -aueox pipefail
 
 if [ ! -f .env ]; then
     echo -e "\nThere is no .env file in the root of this repository."

@@ -31,6 +31,7 @@ type KubeProxyServiceMapper struct {
 }
 
 // ListProxyServices maps an Envoy instance to a number of Kubernetes services.
+// Specifically, it looks up the Pod, and finds all services that might target it.
 func (k *KubeProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]service.MeshService, error) {
 	cn := p.GetCertificateCommonName()
 
@@ -48,6 +49,9 @@ func (k *KubeProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]service.Me
 		return nil, nil
 	}
 
+	// TODO(steeling): query the traffictargets/remoteservices, and add each service that can reach this. This should be
+	// calculated via the service equivalence, and add a new meshservice.
+
 	meshServices := kubernetesServicesToMeshServices(services)
 
 	servicesForPod := strings.Join(listServiceNames(meshServices), ",")
@@ -60,8 +64,9 @@ func (k *KubeProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]service.Me
 func kubernetesServicesToMeshServices(kubernetesServices []v1.Service) (meshServices []service.MeshService) {
 	for _, svc := range kubernetesServices {
 		meshServices = append(meshServices, service.MeshService{
-			Namespace: svc.Namespace,
-			Name:      svc.Name,
+			Namespace:  svc.Namespace,
+			Name:       svc.Name,
+			OSMCluster: "*",
 		})
 	}
 	return meshServices

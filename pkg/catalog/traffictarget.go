@@ -23,12 +23,14 @@ const (
 
 // ListAllowedInboundServiceIdentities lists the downstream service identities that can connect to the given upstream service account
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+// This is currently only used to get the set of services for an identity to populate the Envoy SDS configs.
 func (mc *MeshCatalog) ListAllowedInboundServiceIdentities(upstream identity.ServiceIdentity) ([]identity.ServiceIdentity, error) {
 	return mc.getAllowedDirectionalServiceAccounts(upstream, inbound)
 }
 
 // ListAllowedOutboundServiceIdentities lists the upstream service identities the given downstream service account can connect to
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+// Outbound is only used by the endpoints discovery service.
 func (mc *MeshCatalog) ListAllowedOutboundServiceIdentities(downstream identity.ServiceIdentity) ([]identity.ServiceIdentity, error) {
 	return mc.getAllowedDirectionalServiceAccounts(downstream, outbound)
 }

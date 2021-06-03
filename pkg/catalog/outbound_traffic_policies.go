@@ -64,9 +64,12 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 		svc := service.MeshService{
 			Name:      kubernetes.GetServiceFromHostname(split.Spec.Service),
 			Namespace: split.Namespace,
+			// TODO(steeling): potentially need to set the cluster here, iff the traffic split has destinations in this cluster.
 		}
 
-		hostnames, err := mc.getServiceHostnames(svc, svc.Namespace == sourceNamespace)
+		// TODO(steeling): set true based on annotation in traffic access && traffic split???
+		// need to be careful of disrupting current setup and backwards compatibility.
+		hostnames, err := mc.getServiceHostnames(svc, svc.Namespace == sourceNamespace, false)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting service hostnames for apex service %v", svc)
 			continue
@@ -75,6 +78,8 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 
 		var weightedClusters []service.WeightedCluster
 		for _, backend := range split.Spec.Backends {
+			// TODO(steeling): potentially set the clusters here.
+			// It might not be able to have the dot between cluster.local in the default case.
 			ms := service.MeshService{Name: backend.Service, Namespace: split.ObjectMeta.Namespace}
 			wc := service.WeightedCluster{
 				ClusterName: service.ClusterName(ms.String()),
@@ -111,6 +116,10 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity id
 				destServices, err := mc.getServicesForServiceAccount(identity.K8sServiceAccount{
 					Name:      t.Spec.Destination.Name,
 					Namespace: t.Spec.Destination.Namespace,
+					// TODO(steeling) set the clustername. This is an interesting case.. this is used for a query, so we want to allow the *, or
+					// allow multiple.
+					// What we can do is add another loop that iterates over the annotations referencing which clusters these apply to.
+					// For the * case we can either treat an ommission as a query all, or get all of the RemoteServices and iterate over those.
 				})
 				if err != nil {
 					log.Error().Err(err).Msgf("No Services found matching Service Account %s in Namespace %s", t.Spec.Destination.Name, t.Namespace)
@@ -137,11 +146,13 @@ func (mc *MeshCatalog) buildOutboundPermissiveModePolicies() []*trafficpolicy.Ou
 	k8sServices := mc.kubeController.ListServices()
 	var destServices []service.MeshService
 	for _, k8sService := range k8sServices {
+		// TODO(steeling): the call to K8sSvcToMeshSvc needs to know which cluster.. so we'll need to populate that here somehow.
 		destServices = append(destServices, utils.K8sSvcToMeshSvc(k8sService))
 	}
 
 	for _, destService := range destServices {
-		hostnames, err := mc.getServiceHostnames(destService, false)
+		// TODO(steeling) Include .cluster.global *only* for the gateway. That's because it can't route out of cluster.
+		hostnames, err := mc.getServiceHostnames(destService, false, false)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting service hostnames for service %s", destService)
 			continue
@@ -182,7 +193,13 @@ func (mc *MeshCatalog) buildOutboundPolicies(sourceServiceIdentity identity.Serv
 		// Do not build an outbound policy if the destination service is an apex service in a traffic target
 		// this will be handled while building policies from traffic split (with the backend services as weighted clusters)
 		if !mc.isTrafficSplitApexService(destService) {
-			hostnames, err := mc.getServiceHostnames(destService, source.Namespace == destService.Namespace)
+			// TODO(steeling): We will need to do 2 things.
+			// 1. Create a new outboundPolicy for service.my-ns.svc.cluster.remote-x where x is *NOT* the local cluster.
+			// 2. Create a new outboundPolicy for service.my-ns.svc.cluster.global where global contains *all* of the
+			// destServices for every cluster, sourced from the union of RemoteServices and TrafficTargets.
+
+			/// bookstore -> bookwarehouse.*...... bookstore-> bookwarehouse ..... bookstore.bookwarehouse.remote-x bookstore -> bookwarehouse.remote-y
+			hostnames, err := mc.getServiceHostnames(destService, source.Namespace == destService.Namespace, false)
 			if err != nil {
 				log.Error().Err(err).Msgf("Error getting service hostnames for service %s", destService)
 				continue
@@ -224,6 +241,13 @@ func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *access.Traffic
 		Name:      t.Spec.Destination.Name,
 		Namespace: t.Spec.Destination.Namespace,
 	}
+	// TODO(steeling): It's not simply enough to get the services based on service account now, since we're adding a
+	// restriction based on the annotations.
+	// For the first iteration we can do the following:
+	// 1. Add an endpoint provider for RemoteService. This will guarantee the remote services are returned in the
+	// destServices.
+	// 2. Post-filter the destServices based on the annotations, to prune out any services that should be denied based
+	// on cluster.
 	destServices, err := mc.getServicesForServiceAccount(sa)
 	if err != nil {
 		return nil, errors.Errorf("Error finding Services for Service Account %#v: %v", sa, err)

@@ -14,6 +14,8 @@ type SDSCertType string
 // this avoids having sprintf/parsing logic all over the place
 type SDSCert struct {
 	// Name is the name of the SDS secret for the certificate
+	// TODO(steeling): if we ever want to support multiple certs per gateway, we will need to include the cluster domain
+	// in the name. For now, one cert for all clusters.
 	Name string
 
 	// CertType is the certificate type

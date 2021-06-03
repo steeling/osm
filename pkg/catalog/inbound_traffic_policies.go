@@ -98,7 +98,11 @@ func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity iden
 			apexServices := mc.getApexServicesForBackendService(upstreamSvc)
 			for _, apexService := range apexServices {
 				// build an inbound policy for every apex service
-				hostnames, err := mc.getServiceHostnames(apexService, apexService.Namespace == upstreamServiceAccount.Namespace)
+				// TODO(steeling): will potentially need to set the additionalDomains, based on:
+				// a) if there is a
+				// alternatively in the inbound routes... bookbuyer.remotex -> bookstore.local.... bookbuyer.remotey -> bookstore.local.... bookbuyer.global -> bookstore.local.....
+
+				hostnames, err := mc.getServiceHostnames(apexService, apexService.Namespace == upstreamServiceAccount.Namespace, true)
 				if err != nil {
 					log.Error().Err(err).Msgf("Error getting service hostnames for apex service %v", apexService)
 					continue
@@ -134,13 +138,13 @@ func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget, svc service
 	routeMatches, err := mc.routesFromRules(t.Spec.Rules, t.Namespace)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error finding route matches from TrafficTarget %s in namespace %s", t.Name, t.Namespace)
-		return inboundPolicies
+		return nil
 	}
 
-	hostnames, err := mc.getServiceHostnames(svc, true)
+	hostnames, err := mc.getServiceHostnames(svc, true, true)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting service hostnames for service %s", svc)
-		return inboundPolicies
+		return nil
 	}
 
 	servicePolicy := trafficpolicy.NewInboundTrafficPolicy(buildPolicyName(svc, false), hostnames)
@@ -169,7 +173,7 @@ func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget, svc service
 func (mc *MeshCatalog) buildInboundPermissiveModePolicies(svc service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
 	var inboundPolicies []*trafficpolicy.InboundTrafficPolicy
 
-	hostnames, err := mc.getServiceHostnames(svc, true)
+	hostnames, err := mc.getServiceHostnames(svc, true, true)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting service hostnames for service %s", svc)
 		return inboundPolicies

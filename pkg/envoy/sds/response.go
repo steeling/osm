@@ -50,6 +50,8 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 
 	// 2. Create SDS secret resources based on the requested certs in the DiscoveryRequest
 	// request.ResourceNames is expected to be a list of either "service-cert:namespace/service" or "root-cert:namespace/service"
+	// TODO(steeling): we won't be able to use a generated cert here (which is used to get the certChain) when we
+	// allow multiCluster Gateways to declare their own cert.
 	for _, envoyProto := range s.getSDSSecrets(cert, requestedCerts, proxy) {
 		sdsResources = append(sdsResources, envoyProto)
 	}
@@ -168,6 +170,8 @@ func getServiceIdentitiesFromCert(sdscert secrets.SDSCert, serviceIdentity ident
 			log.Error().Err(err).Msgf("Error unmarshalling upstream service for outbound cert %s", sdscert)
 			return nil, err
 		}
+		// TODO(steeling): This will need to return the remote and global cluster, but I'm unclear as of yet if we can
+		// modify ListServiceIdentitiesForService.
 		svcIdentities, err := meshCatalog.ListServiceIdentitiesForService(*meshSvc)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error listing service accounts for service %s", meshSvc)
@@ -193,6 +197,7 @@ func getServiceIdentitiesFromCert(sdscert secrets.SDSCert, serviceIdentity ident
 		// service identities that are allowed to connect to this upstream identity. This means, if the upstream proxy
 		// identity is 'X', the SANs for this certificate should correspond to all the downstream identities
 		// allowed to access 'X'.
+		// TODO(steeling): same as above, need to set the additional entries
 		svcIdentities, err := meshCatalog.ListAllowedInboundServiceIdentities(serviceIdentity)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error listing inbound service accounts for proxy with ServiceAccount %s", serviceIdentity)
@@ -212,12 +217,15 @@ func getSubjectAltNamesFromSvcIdentities(serviceIdentities []identity.ServiceIde
 	var matchSANs []*xds_matcher.StringMatcher
 
 	for _, si := range serviceIdentities {
-		match := xds_matcher.StringMatcher{
-			MatchPattern: &xds_matcher.StringMatcher_Exact{
-				Exact: si.String(),
-			},
+		for _, s := range si.SubjectAltNames() {
+			match := xds_matcher.StringMatcher{
+				MatchPattern: &xds_matcher.StringMatcher_Exact{
+					Exact: s.String(),
+				},
+			}
+			matchSANs = append(matchSANs, &match)
 		}
-		matchSANs = append(matchSANs, &match)
+
 	}
 
 	return matchSANs

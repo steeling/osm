@@ -63,6 +63,9 @@ func (sdsc *SDSCert) GetMeshService() (*service.MeshService, error) {
 	return &service.MeshService{
 		Namespace: slices[0],
 		Name:      slices[1],
+		// Note: Another place we don't ned the domain, since the secret is applicable to all.
+		// TODO(steeling) don't hardcode
+		OSMCluster: "*",
 	}, nil
 }
 

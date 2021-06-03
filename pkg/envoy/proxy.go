@@ -15,6 +15,13 @@ import (
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
+type ProxyType int
+
+const (
+	Sidecar ProxyType = iota
+	MultiClusterGateway
+)
+
 // Proxy is a representation of an Envoy proxy connected to the xDS server.
 // This should at some point have a 1:1 match to an Endpoint (which is a member of a meshed service).
 type Proxy struct {
@@ -25,6 +32,8 @@ type Proxy struct {
 	xDSCertificateSerialNumber certificate.SerialNumber
 
 	net.Addr
+
+	Type ProxyType
 
 	// The time this Proxy connected to the OSM control plane
 	connectedAt time.Time
@@ -213,6 +222,7 @@ func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificat
 		xDSCertificateSerialNumber: certSerialNumber,
 
 		Addr: ip,
+		Type: Sidecar, // TODO(steeling): set this based on the common name, or some other identifier.
 
 		connectedAt: time.Now(),
 		hash:        hash,

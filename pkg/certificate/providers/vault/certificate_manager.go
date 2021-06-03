@@ -27,6 +27,7 @@ const (
 	issuingCAField    = "issuing_ca"
 	commonNameField   = "common_name"
 	ttlField          = "ttl"
+	dnsNamesField     = "dns_names"
 
 	checkCertificateExpirationInterval = 5 * time.Second
 	decade                             = 8765 * time.Hour

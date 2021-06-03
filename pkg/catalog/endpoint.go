@@ -55,7 +55,7 @@ func (mc *MeshCatalog) ListAllowedEndpointsForService(downstreamIdentity identit
 	}
 
 	// allowedEndpoints comprises of only those endpoints from outboundEndpoints that matches the endpoints from listEndpointsForServiceIdentity
-	// i.e. only those interseting endpoints are taken into cosideration
+	// i.e. only those intersecting endpoints are taken into cosideration
 	var allowedEndpoints []endpoint.Endpoint
 	for _, destSvcAccount := range destSvcAccounts {
 		podEndpoints := mc.listEndpointsForServiceIdentity(destSvcAccount)

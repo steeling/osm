@@ -115,15 +115,15 @@ func MergeInboundPolicies(allowPartialHostnamesMatch bool, original []*InboundTr
 	for _, l := range latest {
 		foundHostnames := false
 		for _, or := range original {
-			if !allowPartialHostnamesMatch {
-				if reflect.DeepEqual(or.Hostnames, l.Hostnames) {
+			if allowPartialHostnamesMatch {
+				// If l.Hostnames is a subset of or.Hostnames or vice versa then we need to get a union of the two
+				if hostsUnion := slicesUnionIfSubset(or.Hostnames, l.Hostnames); len(hostsUnion) > 0 {
+					or.Hostnames = hostsUnion
 					foundHostnames = true
 					or.Rules = mergeRules(or.Rules, l.Rules)
 				}
 			} else {
-				// If l.Hostnames is a subset of or.Hostnames or vice versa then we need to get a union of the two
-				if hostsUnion := slicesUnionIfSubset(or.Hostnames, l.Hostnames); len(hostsUnion) > 0 {
-					or.Hostnames = hostsUnion
+				if reflect.DeepEqual(or.Hostnames, l.Hostnames) {
 					foundHostnames = true
 					or.Rules = mergeRules(or.Rules, l.Rules)
 				}
@@ -146,16 +146,16 @@ func MergeOutboundPolicies(allowPartialHostnamesMatch bool, original []*Outbound
 	for _, l := range latest {
 		foundHostnames := false
 		for _, or := range original {
-			if !allowPartialHostnamesMatch {
-				if reflect.DeepEqual(or.Hostnames, l.Hostnames) {
+			if allowPartialHostnamesMatch {
+				// If l.Hostnames is a subset of or.Hostnames or vice versa then we need to get a union of the two
+				if hostsUnion := slicesUnionIfSubset(or.Hostnames, l.Hostnames); len(hostsUnion) > 0 {
+					or.Hostnames = hostsUnion
 					foundHostnames = true
 					mergedRoutes := mergeRoutesWeightedClusters(or.Routes, l.Routes)
 					or.Routes = mergedRoutes
 				}
 			} else {
-				// If l.Hostnames is a subset of or.Hostnames or vice versa then we need to get a union of the two
-				if hostsUnion := slicesUnionIfSubset(or.Hostnames, l.Hostnames); len(hostsUnion) > 0 {
-					or.Hostnames = hostsUnion
+				if reflect.DeepEqual(or.Hostnames, l.Hostnames) {
 					foundHostnames = true
 					mergedRoutes := mergeRoutesWeightedClusters(or.Routes, l.Routes)
 					or.Routes = mergedRoutes

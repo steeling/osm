@@ -35,6 +35,9 @@ type MeshConfigSpec struct {
 
 	// Certificate defines the certificate management configurations for a mesh instance.
 	Certificate CertificateSpec `json:"certificate,omitempty"`
+
+	// ClusterID is the unique identifier for this cluster. Must be unique within the clusterset.
+	ClusterID string `json:"cluster_id,omitempty"`
 }
 
 // SidecarSpec is the type used to represent the specifications for the proxy sidecar.

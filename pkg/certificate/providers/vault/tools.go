@@ -23,5 +23,6 @@ func getIssuanceData(cn certificate.CommonName, validityPeriod time.Duration) ma
 	return map[string]interface{}{
 		commonNameField: cn.String(),
 		ttlField:        getDurationInMinutes(validityPeriod),
+		// dnsNamesField: TODO(steeling): set the dnsNamesField
 	}
 }

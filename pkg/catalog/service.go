@@ -14,6 +14,13 @@ import (
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
+const (
+	DefaultLocalClusterDomain = "cluster.local"
+	// The default global cluster domain. This is used to reference every service in the clusterset, ie:
+	// my-svc.my-ns.svc.cluster.global
+	DefaultGlobalClusterDomain = "cluster.global"
+)
+
 // isTrafficSplitBackendService returns true if the given service is a backend service in any traffic split
 func (mc *MeshCatalog) isTrafficSplitBackendService(svc service.MeshService) bool {
 	for _, split := range mc.meshSpec.ListTrafficSplits() {
@@ -21,6 +28,7 @@ func (mc *MeshCatalog) isTrafficSplitBackendService(svc service.MeshService) boo
 			backendService := service.MeshService{
 				Name:      backend.Service,
 				Namespace: split.ObjectMeta.Namespace,
+				// TODO(steeling): set clustername here.
 			}
 			if svc.Equals(backendService) {
 				return true
@@ -36,6 +44,7 @@ func (mc *MeshCatalog) isTrafficSplitApexService(svc service.MeshService) bool {
 		apexService := service.MeshService{
 			Name:      kubernetes.GetServiceFromHostname(split.Spec.Service),
 			Namespace: split.Namespace,
+			// TODO(steeling): set clustername here.
 		}
 		if svc.Equals(apexService) {
 			return true
@@ -55,6 +64,7 @@ func (mc *MeshCatalog) getApexServicesForBackendService(targetService service.Me
 				meshService := service.MeshService{
 					Name:      kubernetes.GetServiceFromHostname(split.Spec.Service),
 					Namespace: split.Namespace,
+					// TODO(steeling): set clustername here.
 				}
 				apexSet.Add(meshService)
 				break
@@ -73,6 +83,8 @@ func (mc *MeshCatalog) getApexServicesForBackendService(targetService service.Me
 func (mc *MeshCatalog) getServicesForServiceAccount(sa identity.K8sServiceAccount) ([]service.MeshService, error) {
 	var services []service.MeshService
 	for _, provider := range mc.endpointsProviders {
+		// TODO(steeling): see comment here pkg/catalog/outbound_traffic_policies.go:119. Need to decide how the query works.
+		// also comment on line 243.
 		providerServices, err := provider.GetServicesForServiceAccount(sa)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting K8s Services linked to Service Account %s from provider %s", sa, provider.GetID())
@@ -168,6 +180,7 @@ func (mc *MeshCatalog) GetPortToProtocolMappingForService(svc service.MeshServic
 func (mc *MeshCatalog) listMeshServices() []service.MeshService {
 	var services []service.MeshService
 	for _, svc := range mc.kubeController.ListServices() {
+		// TODO(steeling): the call to K8sSvcToMeshSvc needs to know which cluster.. so we'll need to populate that here somehow.
 		services = append(services, utils.K8sSvcToMeshSvc(svc))
 	}
 	return services
@@ -176,13 +189,21 @@ func (mc *MeshCatalog) listMeshServices() []service.MeshService {
 // getServiceHostnames returns a list of hostnames corresponding to the service.
 // If the service is in the same namespace, it returns the shorthand hostname for the service that does not
 // include its namespace, ex: bookstore, bookstore:80
-func (mc *MeshCatalog) getServiceHostnames(meshService service.MeshService, sameNamespace bool) ([]string, error) {
+func (mc *MeshCatalog) getServiceHostnames(meshService service.MeshService, sameNamespace bool, allowExternalCluster ...bool) ([]string, error) {
 	svc := mc.kubeController.GetService(meshService)
 	if svc == nil {
 		return nil, errors.Errorf("Error fetching service %q", meshService)
 	}
 
-	hostnames := kubernetes.GetHostnamesForService(svc, sameNamespace)
+	// You can always target your own cluster by it's id.
+	domains := []string{DefaultLocalClusterDomain, mc.configurator.GetClusterDomain()}
+	if len(allowExternalCluster) > 0 && allowExternalCluster[0] {
+		// This should only be included for inbound rules, and on the cluster gateway for outbound... the gateway will need to map this appropriately, ie: point global to the
+		// in-cluster.
+		domains = append(domains, DefaultGlobalClusterDomain)
+	}
+
+	hostnames := kubernetes.GetHostnamesForService(svc, sameNamespace, domains...)
 	return hostnames, nil
 }
 

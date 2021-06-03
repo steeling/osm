@@ -150,6 +150,8 @@ func getCommonTLSContext(tlsSDSCert, peerValidationSDSCert secrets.SDSCert) *xds
 		ValidationContextType: &xds_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 			ValidationContextSdsSecretConfig: &xds_auth.SdsSecretConfig{
 				// Example ==> Name: "root-cert<type>:NameSpaceHere/ServiceNameHere"
+				// TODO(steeling): if we support individual certs per gateway, will need to make sure the SDSCert
+				// has the appropriate cluster domain.
 				Name:      peerValidationSDSCert.String(),
 				SdsConfig: GetADSConfigSource(),
 			},
