@@ -21,6 +21,7 @@ func (mc *MeshCatalog) isTrafficSplitBackendService(svc service.MeshService) boo
 			backendService := service.MeshService{
 				Name:      backend.Service,
 				Namespace: split.ObjectMeta.Namespace,
+				// TODO(steeling): set this to local, traffic splits can't reference remote in V1alpha1
 			}
 			if svc.Equals(backendService) {
 				return true
@@ -36,6 +37,7 @@ func (mc *MeshCatalog) isTrafficSplitApexService(svc service.MeshService) bool {
 		apexService := service.MeshService{
 			Name:      kubernetes.GetServiceFromHostname(split.Spec.Service),
 			Namespace: split.Namespace,
+			// TODO(steeling): set this to local, traffic splits can't reference remote in V1alpha1
 		}
 		if svc.Equals(apexService) {
 			return true
@@ -55,6 +57,7 @@ func (mc *MeshCatalog) getApexServicesForBackendService(targetService service.Me
 				meshService := service.MeshService{
 					Name:      kubernetes.GetServiceFromHostname(split.Spec.Service),
 					Namespace: split.Namespace,
+					// TODO(steeling): set this to local, traffic splits can't reference remote in V1alpha1
 				}
 				apexSet.Add(meshService)
 				break
@@ -177,12 +180,15 @@ func (mc *MeshCatalog) listMeshServices() []service.MeshService {
 // If the service is in the same namespace, it returns the shorthand hostname for the service that does not
 // include its namespace, ex: bookstore, bookstore:80
 func (mc *MeshCatalog) getServiceHostnames(meshService service.MeshService, sameNamespace bool) ([]string, error) {
+	// Verify the service actually exists.
+	// TODO(steeling): iterate over the providers
 	svc := mc.kubeController.GetService(meshService)
 	if svc == nil {
 		return nil, errors.Errorf("Error fetching service %q", meshService)
 	}
 
-	hostnames := kubernetes.GetHostnamesForService(svc, sameNamespace)
+	// TODO(steeling) add this as a function call to the service providers interface
+	hostnames := kubernetes.GetHostnamesForService(meshService, sameNamespace)
 	return hostnames, nil
 }
 

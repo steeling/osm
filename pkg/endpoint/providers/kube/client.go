@@ -16,6 +16,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
+// TODO(steeling) move this entire directory to provider/providers/kube
+
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
 func NewProvider(kubeClient kubernetes.Interface, kubeController k8s.Controller, providerIdent string, cfg configurator.Configurator) (endpoint.Provider, error) {
 	client := Client{
@@ -122,6 +124,7 @@ func (c Client) GetServicesForServiceAccount(svcAccount identity.K8sServiceAccou
 			services.Add(service.MeshService{
 				Namespace: pod.Namespace,
 				Name:      svc.Name,
+				// TODO(steeling): set this to local. This is specifically K8s services, which is bound to local
 			})
 		}
 	}

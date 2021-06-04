@@ -13,6 +13,7 @@ import (
 )
 
 // Provider is an interface to be implemented by components abstracting Kubernetes, and other compute/cluster providers
+// TODO(steeling): move the provider interface to a new package "provider".
 type Provider interface {
 	// ListEndpointsForService retrieves the IP addresses comprising the given service.
 	ListEndpointsForService(service.MeshService) []Endpoint

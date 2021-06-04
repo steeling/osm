@@ -49,6 +49,7 @@ func (k *KubeProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]service.Me
 	}
 
 	meshServices := kubernetesServicesToMeshServices(services)
+	// TODO(steeling): also list the services from the remote service that map to this proxy.
 
 	servicesForPod := strings.Join(listServiceNames(meshServices), ",")
 	log.Trace().Msgf("Services associated with Pod with UID=%s Name=%s/%s: %+v",
@@ -62,6 +63,7 @@ func kubernetesServicesToMeshServices(kubernetesServices []v1.Service) (meshServ
 		meshServices = append(meshServices, service.MeshService{
 			Namespace: svc.Namespace,
 			Name:      svc.Name,
+			// TODO(steeling): set this to local. This is specifically K8s services, which is bound to local
 		})
 	}
 	return meshServices

@@ -199,7 +199,7 @@ func GetUpstreamTLSContext(downstreamIdentity identity.ServiceIdentity, upstream
 		CertType: secrets.ServiceCertType,
 	}
 	upstreamPeerValidationSDSCert := secrets.SDSCert{
-		Name:     upstreamSvc.String(),
+		Name:     upstreamSvc.UnscopedName(),
 		CertType: secrets.RootCertTypeForMTLSOutbound,
 	}
 	commonTLSContext := getCommonTLSContext(downstreamSDSCert, upstreamPeerValidationSDSCert)

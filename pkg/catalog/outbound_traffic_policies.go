@@ -64,6 +64,7 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 		svc := service.MeshService{
 			Name:      kubernetes.GetServiceFromHostname(split.Spec.Service),
 			Namespace: split.Namespace,
+			// TODO(steeling): set this to local, traffic splits can't reference remote in V1alpha1
 		}
 
 		hostnames, err := mc.getServiceHostnames(svc, svc.Namespace == sourceNamespace)
@@ -79,6 +80,7 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 			wc := service.WeightedCluster{
 				ClusterName: service.ClusterName(ms.String()),
 				Weight:      backend.Weight,
+				// TODO(steeling): set this to local, traffic splits can't reference remote in V1alpha1
 			}
 			weightedClusters = append(weightedClusters, wc)
 		}
@@ -134,6 +136,9 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity id
 func (mc *MeshCatalog) buildOutboundPermissiveModePolicies() []*trafficpolicy.OutboundTrafficPolicy {
 	var outPolicies []*trafficpolicy.OutboundTrafficPolicy
 
+	// TODO(steeling): also need to iterate over the remote services.
+	// We should consider creating a ServicesProvider, similar to endpoints provider
+	// Alternatively, we can create "Providers", that know how to do all.
 	k8sServices := mc.kubeController.ListServices()
 	var destServices []service.MeshService
 	for _, k8sService := range k8sServices {
@@ -303,6 +308,7 @@ func (mc *MeshCatalog) ListMeshServicesForIdentity(identity identity.ServiceIden
 					rootMeshService := service.MeshService{
 						Namespace: split.Namespace,
 						Name:      rootServiceName,
+						// TODO(steeling): set this to local, traffic splits can't reference remote in V1alpha1
 					}
 
 					// Add this root service into the set

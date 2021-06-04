@@ -16,9 +16,20 @@ type MeshService struct {
 
 	// The name of the service
 	Name string
+
+	// The name of the cluster, ie: cluster.local. This is different than the type ClusterName below, which is in
+	// reference to the Envoy cluster.
+	Domain string
 }
 
 func (ms MeshService) String() string {
+	// TODO(steeling): include the cluster here (use strings.Join())
+	return fmt.Sprintf("%s%s%s", ms.Namespace, namespaceNameSeparator, ms.Name)
+}
+
+// TODO(steeling) we may want to allow a cert per cluster, but for now the Cert is often generated from the service
+// account, which is not cluster scoped, so we're naming it based it on the service, unscoped to cluster.
+func (ms MeshService) UnscopedName() string {
 	return fmt.Sprintf("%s%s%s", ms.Namespace, namespaceNameSeparator, ms.Name)
 }
 

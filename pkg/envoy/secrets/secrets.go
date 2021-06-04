@@ -51,7 +51,7 @@ func UnmarshalSDSCert(str string) (*SDSCert, error) {
 // GetMeshService unmarshals a NamespaceService type from a SDSCert name
 func (sdsc *SDSCert) GetMeshService() (*service.MeshService, error) {
 	slices := strings.Split(sdsc.Name, namespaceNameSeparator)
-	if len(slices) != 2 {
+	if len(slices) != 3 {
 		return nil, errInvalidMeshServiceFormat
 	}
 
@@ -63,13 +63,14 @@ func (sdsc *SDSCert) GetMeshService() (*service.MeshService, error) {
 	return &service.MeshService{
 		Namespace: slices[0],
 		Name:      slices[1],
+		Cluster:   slices[2],
 	}, nil
 }
 
 // GetK8sServiceAccount unmarshals a K8sServiceAccount type from a SDSCert name
 func (sdsc *SDSCert) GetK8sServiceAccount() (*identity.K8sServiceAccount, error) {
 	slices := strings.Split(sdsc.Name, namespaceNameSeparator)
-	if len(slices) != 2 {
+	if len(slices) != 3 {
 		log.Error().Msgf("Error converting Service Account %s from string to K8sServiceAccount", sdsc.Name)
 		return nil, errInvalidNamespacedServiceStringFormat
 	}

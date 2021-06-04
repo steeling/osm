@@ -188,8 +188,9 @@ func (c Client) ListMonitoredNamespaces() ([]string, error) {
 
 // GetService retrieves the Kubernetes Services resource for the given MeshService
 func (c Client) GetService(svc service.MeshService) *corev1.Service {
+	// TODO(steeling): if the svc is not in the local namespace, return nil.
 	// client-go cache uses <namespace>/<name> as key
-	svcIf, exists, err := c.informers[Services].GetStore().GetByKey(svc.String())
+	svcIf, exists, err := c.informers[Services].GetStore().GetByKey(svc.UnscopedName())
 	if exists && err == nil {
 		svc := svcIf.(*corev1.Service)
 		return svc
@@ -256,7 +257,8 @@ func (c Client) ListPods() []*corev1.Pod {
 // GetEndpoints returns the endpoint for a given service, otherwise returns nil if not found
 // or error if the API errored out.
 func (c Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error) {
-	ep, exists, err := c.informers[Endpoints].GetStore().GetByKey(svc.String())
+	// TODO(steeling): if the svc is not in the local namespace, return nil.
+	ep, exists, err := c.informers[Endpoints].GetStore().GetByKey(svc.UnscopedName())
 	if err != nil {
 		return nil, err
 	}
@@ -268,6 +270,7 @@ func (c Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error)
 
 // ListServiceIdentitiesForService lists ServiceAccounts associated with the given service
 func (c Client) ListServiceIdentitiesForService(svc service.MeshService) ([]identity.K8sServiceAccount, error) {
+	// TODO(steeling): if the svc is not in the local namespace, return nil, error.
 	var svcAccounts []identity.K8sServiceAccount
 
 	k8sSvc := c.GetService(svc)
