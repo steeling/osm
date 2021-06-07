@@ -39,7 +39,7 @@ var _ = Describe("Test Announcement Handlers", func() {
 
 		osmNamespace := "-test-osm-namespace-"
 		osmMeshConfigName := "-test-osm-mesh-config-"
-		cfg := configurator.NewConfigurator(configClient, stop, osmNamespace, osmMeshConfigName)
+		cfg := configurator.NewConfigurator(configClient, stop, osmNamespace, osmMeshConfigName, configurator.NoInitTicker)
 		certManager = tresor.NewFakeCertManager(cfg)
 
 		_, err := certManager.IssueCertificate(envoyCN, 5*time.Second)

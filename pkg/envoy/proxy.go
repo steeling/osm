@@ -41,6 +41,10 @@ type Proxy struct {
 	// kind is the proxy's kind (ex. sidecar, gateway)
 	kind ProxyKind
 
+	// Whether this proxy can discover all services in the cluster, or adheres to SMI traffic Specs.
+	// Currently is a cluster-wide option on all sidecars, and always true for the multi-cluster gateway.
+	permissive bool
+
 	// Records metadata around the Kubernetes Pod on which this Envoy Proxy is installed.
 	// This could be nil if the Envoy is not operating in a Kubernetes cluster (VM for example)
 	// NOTE: This field may be not be set at the time Proxy struct is initialized. This would
@@ -50,6 +54,10 @@ type Proxy struct {
 
 func (p *Proxy) String() string {
 	return fmt.Sprintf("Proxy on Pod with UID=%s", p.GetPodUID())
+}
+
+func (p *Proxy) Permissive() bool {
+	return p.permissive
 }
 
 // PodMetadata is a struct holding information on the Pod on which a given Envoy proxy is installed
@@ -208,7 +216,7 @@ func (p *Proxy) Kind() ProxyKind {
 }
 
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
-func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificate.SerialNumber, ip net.Addr) (*Proxy, error) {
+func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificate.SerialNumber, ip net.Addr, permissive bool) (*Proxy, error) {
 	// Get CommonName hash for this proxy
 	hash, err := utils.HashFromString(certCommonName.String())
 	if err != nil {
@@ -235,6 +243,9 @@ func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificat
 		lastxDSResourcesSent: make(map[TypeURI]mapset.Set),
 
 		kind: cnMeta.ProxyKind,
+		// Gateway's are always considered permissive.
+		// TODO(steeling): don't let the gateway get external cluster services.
+		permissive: permissive || cnMeta.ProxyKind == KindGateway,
 	}, nil
 }
 

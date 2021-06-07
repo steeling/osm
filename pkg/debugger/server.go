@@ -44,7 +44,6 @@ func NewDebugConfig(certDebugger CertificateManagerDebugger, xdsDebugger XDSDebu
 		xdsDebugger:         xdsDebugger,
 		meshCatalogDebugger: meshCatalogDebugger,
 		proxyRegistry:       proxyRegistry,
-		kubeClient:          kubeClient,
 		kubeController:      kubeController,
 
 		// We need the Kubernetes config to be able to establish port forwarding to the Envoy pod we want to debug.

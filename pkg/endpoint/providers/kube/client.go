@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -17,10 +16,9 @@ import (
 )
 
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
-func NewProvider(kubeClient kubernetes.Interface, kubeController k8s.Controller, providerIdent string, cfg configurator.Configurator) (endpoint.Provider, error) {
+func NewProvider(kubeController k8s.Controller, providerIdent string, cfg configurator.Configurator) (endpoint.Provider, error) {
 	client := Client{
 		providerIdent:  providerIdent,
-		kubeClient:     kubeClient,
 		kubeController: kubeController,
 	}
 
@@ -207,6 +205,8 @@ func (c *Client) getServicesByLabels(podLabels map[string]string, namespace stri
 func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {
 	var endpoints []endpoint.Endpoint
 	var err error
+
+	// I don't speak other clusters, that's an error
 
 	// Check if the service has been given Cluster IP
 	kubeService := c.kubeController.GetService(svc)

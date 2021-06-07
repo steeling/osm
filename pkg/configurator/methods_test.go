@@ -33,7 +33,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 		meshConfigClientSet := testclient.NewSimpleClientset()
 
 		stop := make(chan struct{})
-		cfg := newConfigurator(meshConfigClientSet, stop, osmNamespace, osmMeshConfigName)
+		cfg := newConfigurator(meshConfigClientSet, stop, osmNamespace, osmMeshConfigName, NoInitTicker)
 		tassert.Equal(t, &v1alpha1.MeshConfig{}, cfg.getMeshConfig())
 	})
 

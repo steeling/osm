@@ -8,7 +8,6 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/api/admissionregistration/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -23,7 +22,6 @@ var log = logger.New("reconciler")
 // MutatingWebhookConfigurationReconciler reconciles a MutatingWebhookConfiguration object
 type MutatingWebhookConfigurationReconciler struct {
 	client.Client
-	KubeClient   *kubernetes.Clientset
 	Scheme       *runtime.Scheme
 	OsmWebhook   string
 	OsmNamespace string

@@ -21,12 +21,26 @@ const (
 	DefaultMeshConfigName = "osm-mesh-config"
 )
 
+type option struct {
+	noInitTicker bool
+}
+
+type ConfiguratorOption func(o *option)
+
+func NoInitTicker(o *option) {
+	o.noInitTicker = true
+}
+
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
-func NewConfigurator(kubeClient versioned.Interface, stop <-chan struct{}, osmNamespace, meshConfigName string) Configurator {
+func NewConfigurator(kubeClient versioned.Interface, stop <-chan struct{}, osmNamespace, meshConfigName string, opts ...ConfiguratorOption) Configurator {
 	return newConfigurator(kubeClient, stop, osmNamespace, meshConfigName)
 }
 
-func newConfigurator(meshConfigClientSet versioned.Interface, stop <-chan struct{}, osmNamespace string, meshConfigName string) *Client {
+func newConfigurator(meshConfigClientSet versioned.Interface, stop <-chan struct{}, osmNamespace string, meshConfigName string, opts ...ConfiguratorOption) *Client {
+	o := &option{}
+	for _, f := range opts {
+		f(o)
+	}
 	informerFactory := informers.NewSharedInformerFactoryWithOptions(
 		meshConfigClientSet,
 		k8s.DefaultKubeEventResyncInterval,
@@ -53,6 +67,10 @@ func newConfigurator(meshConfigClientSet versioned.Interface, stop <-chan struct
 	go client.runMeshConfigListener(stop)
 
 	client.run(stop)
+
+	if !o.noInitTicker {
+		InitTicker(&client)
+	}
 
 	return &client
 }

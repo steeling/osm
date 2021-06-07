@@ -16,9 +16,9 @@ import (
 // 1. from service discovery for permissive mode
 // 2. for the given service account from SMI Traffic Target and Traffic Split
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func (mc *MeshCatalog) ListOutboundTrafficPolicies(downstreamIdentity identity.ServiceIdentity) []*trafficpolicy.OutboundTrafficPolicy {
+func (mc *MeshCatalog) ListOutboundTrafficPolicies(downstreamIdentity identity.ServiceIdentity, permissive bool) []*trafficpolicy.OutboundTrafficPolicy {
 	downstreamServiceAccount := downstreamIdentity.ToK8sServiceAccount()
-	if mc.configurator.IsPermissiveTrafficPolicyMode() {
+	if permissive {
 		var outboundPolicies []*trafficpolicy.OutboundTrafficPolicy
 		mergedPolicies := trafficpolicy.MergeOutboundPolicies(DisallowPartialHostnamesMatch, outboundPolicies, mc.buildOutboundPermissiveModePolicies()...)
 		outboundPolicies = mergedPolicies
@@ -98,9 +98,9 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 
 // ListAllowedOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
+func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity, permissive bool) []service.MeshService {
 	ident := serviceIdentity.ToK8sServiceAccount()
-	if mc.configurator.IsPermissiveTrafficPolicyMode() {
+	if permissive {
 		return mc.listMeshServices()
 	}
 
@@ -273,8 +273,8 @@ func (mc *MeshCatalog) GetWeightedClustersForUpstream(upstream service.MeshServi
 
 // ListMeshServicesForIdentity returns a list of services the service with the
 // given identity can communicate with, including apex TrafficSplit services.
-func (mc *MeshCatalog) ListMeshServicesForIdentity(identity identity.ServiceIdentity) []service.MeshService {
-	upstreamServices := mc.ListAllowedOutboundServicesForIdentity(identity)
+func (mc *MeshCatalog) ListMeshServicesForIdentity(identity identity.ServiceIdentity, permissive bool) []service.MeshService {
+	upstreamServices := mc.ListAllowedOutboundServicesForIdentity(identity, permissive)
 	if len(upstreamServices) == 0 {
 		log.Debug().Msgf("Proxy with identity %s does not have any allowed upstream services", identity)
 		return nil

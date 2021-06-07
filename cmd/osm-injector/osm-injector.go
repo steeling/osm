@@ -134,7 +134,7 @@ func main() {
 	)
 
 	// Initialize Configurator to retrieve mesh specific config
-	cfg := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName)
+	cfg := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName, configurator.NoInitTicker)
 	meshConfig, err := cfg.GetMeshConfigJSON()
 	if err != nil {
 		log.Error().Err(err).Msgf("Error parsing MeshConfig %s", osmMeshConfigName)

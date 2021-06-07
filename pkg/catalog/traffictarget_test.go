@@ -862,8 +862,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
 			meshCatalog := MeshCatalog{
-				meshSpec:     mockMeshSpec,
-				configurator: mockCfg,
+				meshSpec: mockMeshSpec,
 			}
 
 			mockCfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
@@ -880,7 +879,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 				}
 			}
 
-			actual, err := meshCatalog.ListInboundTrafficTargetsWithRoutes(tc.upstreamServiceIdentity)
+			actual, err := meshCatalog.ListInboundTrafficTargetsWithRoutes(tc.upstreamServiceIdentity, mockCfg.IsPermissiveTrafficPolicyMode())
 			assert.Equal(err != nil, tc.expectError)
 			assert.ElementsMatch(tc.expectedTrafficTargets, actual)
 		})

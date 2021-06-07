@@ -24,7 +24,6 @@ import (
 func NewKubernetesController(kubeClient kubernetes.Interface, meshName string, stop chan struct{}, selectInformers ...InformerKey) (Controller, error) {
 	// Initialize client object
 	client := Client{
-		kubeClient:  kubeClient,
 		meshName:    meshName,
 		informers:   informerCollection{},
 		cacheSynced: make(chan interface{}),

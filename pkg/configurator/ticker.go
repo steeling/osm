@@ -1,12 +1,10 @@
-package ticker
+package configurator
 
 import (
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
-	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 const (
@@ -22,7 +20,6 @@ type ResyncTicker struct {
 }
 
 var (
-	log = logger.New("ticker")
 	// Local reference to global ticker
 	rTicker *ResyncTicker = nil
 )
@@ -31,7 +28,7 @@ var (
 // pubsub, and triggers global proxy updates also through pubsub.
 // Upon this function return, the ticker is guaranteed to be started
 // and ready to receive new events.
-func InitTicker(c configurator.Configurator) *ResyncTicker {
+func InitTicker(c Configurator) *ResyncTicker {
 	if rTicker != nil {
 		return rTicker
 	}
@@ -47,16 +44,11 @@ func InitTicker(c configurator.Configurator) *ResyncTicker {
 	stopConfig := make(chan struct{})
 	go tickerConfigListener(c, configIsReady, stopConfig)
 	<-configIsReady
-
-	rTicker = &ResyncTicker{
-		stopTickerRoutine: stopTicker,
-		stopConfigRoutine: stopConfig,
-	}
 	return rTicker
 }
 
 // Listens to meshconfig events and notifies ticker routine to start/stop
-func tickerConfigListener(cfg configurator.Configurator, ready chan struct{}, stop <-chan struct{}) {
+func tickerConfigListener(cfg Configurator, ready chan struct{}, stop <-chan struct{}) {
 	// Subscribe to configuration updates
 	meshConfigChannel := events.GetPubSubInstance().Subscribe(
 		announcements.MeshConfigAdded,

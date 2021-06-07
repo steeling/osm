@@ -22,7 +22,6 @@ func createReconciler(kubeClient *kubernetes.Clientset) error {
 	// Add a reconciler for osm-injector's mutatingwehbookconfiguration
 	if err = (&reconciler.MutatingWebhookConfigurationReconciler{
 		Client:       mgr.GetClient(),
-		KubeClient:   kubeClient,
 		Scheme:       mgr.GetScheme(),
 		OsmWebhook:   webhookConfigName,
 		OsmNamespace: osmNamespace,

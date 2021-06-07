@@ -41,7 +41,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	// NOTE: This is step 1 of the registration. At this point we do not yet have context on the Pod.
 	//       Details on which Pod this Envoy is fronting will arrive via xDS in the NODE_ID string.
 	//       When this arrives we will call RegisterProxy() a second time - this time with Pod context!
-	proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, utils.GetIPFromContext(server.Context()))
+	proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, utils.GetIPFromContext(server.Context()), s.cfg.IsPermissiveTrafficPolicyMode())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error initializing proxy with certificate SerialNumber=%s", certSerialNumber)
 		return err

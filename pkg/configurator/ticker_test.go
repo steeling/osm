@@ -1,4 +1,4 @@
-package ticker
+package configurator
 
 import (
 	"testing"
@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
@@ -20,7 +19,7 @@ func teardownTicker() {
 
 func TestInitTicker(t *testing.T) {
 	assert := assert.New(t)
-	mockConfigurator := configurator.NewMockConfigurator(gomock.NewController(t))
+	mockConfigurator := NewMockConfigurator(gomock.NewController(t))
 	mockConfigurator.EXPECT().GetConfigResyncInterval().Return(time.Duration(0))
 
 	events.GetPubSubInstance().Subscribe(announcements.TickerStart)
@@ -94,7 +93,7 @@ func TestTicker(t *testing.T) {
 // Test the MeshConfig event listener code for ticker
 func TestTickerConfigurator(t *testing.T) {
 	assert := assert.New(t)
-	mockConfigurator := configurator.NewMockConfigurator(gomock.NewController(t))
+	mockConfigurator := NewMockConfigurator(gomock.NewController(t))
 
 	tickerStartEvents := events.GetPubSubInstance().Subscribe(announcements.TickerStart)
 	tickerStopEvents := events.GetPubSubInstance().Subscribe(announcements.TickerStop)

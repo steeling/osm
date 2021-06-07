@@ -35,10 +35,10 @@ func (mc *MeshCatalog) ListAllowedOutboundServiceIdentities(downstream identity.
 
 // ListInboundTrafficTargetsWithRoutes returns a list traffic target objects composed of its routes for the given destination service account
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func (mc *MeshCatalog) ListInboundTrafficTargetsWithRoutes(upstream identity.ServiceIdentity) ([]trafficpolicy.TrafficTargetWithRoutes, error) {
+func (mc *MeshCatalog) ListInboundTrafficTargetsWithRoutes(upstream identity.ServiceIdentity, permissive bool) ([]trafficpolicy.TrafficTargetWithRoutes, error) {
 	var trafficTargets []trafficpolicy.TrafficTargetWithRoutes
 
-	if mc.configurator.IsPermissiveTrafficPolicyMode() {
+	if permissive {
 		return nil, nil
 	}
 

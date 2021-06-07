@@ -6,7 +6,6 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -66,7 +65,6 @@ type informerCollection map[InformerKey]cache.SharedIndexInformer
 // Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
 type Client struct {
 	meshName    string
-	kubeClient  kubernetes.Interface
 	informers   informerCollection
 	cacheSynced chan interface{}
 }

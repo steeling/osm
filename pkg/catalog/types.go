@@ -8,7 +8,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/ingress"
@@ -30,7 +29,6 @@ type MeshCatalog struct {
 	meshSpec           smi.MeshSpec
 	certManager        certificate.Manager
 	ingressMonitor     ingress.Monitor
-	configurator       configurator.Configurator
 
 	// Current assumption is that OSM is working with a single Kubernetes cluster.
 	// This is the API/REST interface to the cluster
