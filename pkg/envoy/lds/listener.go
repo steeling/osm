@@ -15,6 +15,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/featureflags"
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -27,8 +28,28 @@ const (
 	singleIpv4Mask                = 32
 )
 
+func createHeadlessServiceFilterChain(svcs []service.MeshService) []*xds_listener.FilterChain {
+	wildcardSvcs := []string{}
+	for _, s := range svcs {
+		wildcardSvcs = append(wildcardSvcs, fmt.Sprintf("*.%s", s.String()))
+	}
+	return &xds_listener.FilterChain{
+		// TODO: to string and regex
+		FilterChainMatch: &xds_listener.FilterChainMatch{ServerNames: wildcardSvcs},
+	}
+}
+
+// createExternalNameServiceFilterChain()
+
 func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error) {
-	serviceFilterChains := lb.getOutboundFilterChainPerUpstream()
+	upstreamServices := lb.meshCatalog.ListAllowedOutboundServicesForIdentity(lb.serviceIdentity)
+	if len(upstreamServices) == 0 {
+		log.Debug().Msgf("Proxy with identity %s does not have any allowed upstream services", lb.serviceIdentity)
+	}
+	serviceFilterChains := lb.getOutboundFilterChainPerUpstream(upstreamServices)
+	// TODO(steeling) filter out the headless ones..
+
+	serviceFilterChains = append(serviceFilterChains, createHeadlessServiceFilterChain(upstreamServices)...)
 
 	listener := &xds_listener.Listener{
 		Name:             outboundListenerName,

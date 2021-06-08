@@ -32,7 +32,7 @@ type KubeProxyServiceMapper struct {
 
 // ListProxyServices maps an Envoy instance to a number of Kubernetes services.
 func (k *KubeProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]service.MeshService, error) {
-	cn := p.GetCertificateCommonName()
+	cn := p.GetCertificateCommonName() // TODO: steeling, need local, and my-local
 
 	pod, err := envoy.GetPodFromCertificate(cn, k.KubeController)
 	if err != nil {
@@ -58,6 +58,7 @@ func (k *KubeProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]service.Me
 }
 
 func kubernetesServicesToMeshServices(kubernetesServices []v1.Service) (meshServices []service.MeshService) {
+	// ie: for cluster, in
 	for _, svc := range kubernetesServices {
 		meshServices = append(meshServices, service.MeshService{
 			Namespace: svc.Namespace,

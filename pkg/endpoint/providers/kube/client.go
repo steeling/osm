@@ -215,15 +215,10 @@ func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]en
 		return nil, errServiceNotFound
 	}
 
-	if len(kubeService.Spec.ClusterIP) == 0 || kubeService.Spec.ClusterIP == corev1.ClusterIPNone {
-		// If service has no cluster IP or cluster IP is <none>, use final endpoint as resolvable destinations
-		return c.ListEndpointsForService(svc), nil
-	}
-
 	// Cluster IP is present
 	ip := net.ParseIP(kubeService.Spec.ClusterIP)
 	if ip == nil {
-		log.Error().Msgf("[%s] Could not parse Cluster IP %s", c.providerIdent, kubeService.Spec.ClusterIP)
+		log.Warn().Msgf("[%s] Could not parse Cluster IP %s. This is expected for headless and externalName services", c.providerIdent, kubeService.Spec.ClusterIP)
 		return nil, errParseClusterIP
 	}
 
