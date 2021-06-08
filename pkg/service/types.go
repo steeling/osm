@@ -18,9 +18,12 @@ type MeshService struct {
 	Name string
 }
 
+// TODO: add the cluster name here.
 func (ms MeshService) String() string {
 	return fmt.Sprintf("%s%s%s", ms.Namespace, namespaceNameSeparator, ms.Name)
 }
+
+// TODO: add an ClusterAgnosticName func as well.
 
 // ClusterName is a type for a service name
 type ClusterName string

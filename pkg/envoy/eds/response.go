@@ -91,6 +91,7 @@ func clusterToMeshSvc(cluster string) (service.MeshService, error) {
 	if len(chunks) != 2 {
 		return service.MeshService{}, errors.Errorf("Invalid cluster name. Expected: <namespace>/<name>, Got: %s", cluster)
 	}
+	// TODO: add the cluster.
 	return service.MeshService{Namespace: chunks[0], Name: chunks[1]}, nil
 }
 

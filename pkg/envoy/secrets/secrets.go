@@ -5,7 +5,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/service"
 )
 
 const (
@@ -49,7 +48,7 @@ func UnmarshalSDSCert(str string) (*SDSCert, error) {
 }
 
 // GetMeshService unmarshals a NamespaceService type from a SDSCert name
-func (sdsc *SDSCert) GetMeshService() (*service.MeshService, error) {
+func (sdsc *SDSCert) GetSvcIdentity() (*identity.ServiceIdentity, error) {
 	slices := strings.Split(sdsc.Name, namespaceNameSeparator)
 	if len(slices) != 2 {
 		return nil, errInvalidMeshServiceFormat
@@ -60,10 +59,8 @@ func (sdsc *SDSCert) GetMeshService() (*service.MeshService, error) {
 		return nil, errInvalidMeshServiceFormat
 	}
 
-	return &service.MeshService{
-		Namespace: slices[0],
-		Name:      slices[1],
-	}, nil
+	svcIdentity := identity.K8sServiceAccount{Namespace: slices[0], Name: slices[1]}.ToServiceIdentity()
+	return &svcIdentity, nil
 }
 
 // GetK8sServiceAccount unmarshals a K8sServiceAccount type from a SDSCert name

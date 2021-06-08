@@ -197,10 +197,12 @@ func GetUpstreamTLSContext(downstreamIdentity identity.ServiceIdentity, upstream
 	downstreamSDSCert := secrets.SDSCert{
 		Name:     downstreamIdentity.GetSDSCSecretName(),
 		CertType: secrets.ServiceCertType,
+		// needs to be "my cert" (local)
 	}
 	upstreamPeerValidationSDSCert := secrets.SDSCert{
 		Name:     upstreamSvc.String(),
 		CertType: secrets.RootCertTypeForMTLSOutbound,
+		// might be remote
 	}
 	commonTLSContext := getCommonTLSContext(downstreamSDSCert, upstreamPeerValidationSDSCert)
 

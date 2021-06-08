@@ -57,7 +57,7 @@ func (k *KubeProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]service.Me
 	return meshServices, nil
 }
 
-func kubernetesServicesToMeshServices(kubernetesServices []v1.Service) (meshServices []service.MeshService) {
+func kubernetesServicesToMeshServices(kubernetesServices []v1.Service, domains []string) (meshServices []service.MeshService) {
 	for _, svc := range kubernetesServices {
 		meshServices = append(meshServices, service.MeshService{
 			Namespace: svc.Namespace,

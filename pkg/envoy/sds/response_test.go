@@ -234,6 +234,15 @@ func TestGetRootCert(t *testing.T) {
 	}
 }
 
+func subjectAltNamesToStr(sanMatchList []*xds_matcher.StringMatcher) []string {
+	var sanStr []string
+
+	for _, sanMatcher := range sanMatchList {
+		sanStr = append(sanStr, sanMatcher.GetExact())
+	}
+	return sanStr
+}
+
 func TestGetServiceCert(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)

@@ -163,17 +163,12 @@ func getServiceIdentitiesFromCert(sdscert secrets.SDSCert, serviceIdentity ident
 		// For the outbound certificate validation context, the SANs needs to match the list of service identities
 		// corresponding to the upstream service. This means, if the sdscert.Name points to service 'X',
 		// the SANs for this certificate should correspond to the service identities of 'X'.
-		meshSvc, err := sdscert.GetMeshService()
+		svcIdentity, err := sdscert.GetSvcIdentity()
 		if err != nil {
 			log.Error().Err(err).Msgf("Error unmarshalling upstream service for outbound cert %s", sdscert)
 			return nil, err
 		}
-		svcIdentities, err := meshCatalog.ListServiceIdentitiesForService(*meshSvc)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error listing service accounts for service %s", meshSvc)
-			return nil, err
-		}
-		return svcIdentities, nil
+		return []identity.ServiceIdentity{*svcIdentity}, nil
 
 	case secrets.RootCertTypeForMTLSInbound:
 		// Verify that the SDS cert request corresponding to the mTLS root validation cert matches the identity
@@ -221,13 +216,4 @@ func getSubjectAltNamesFromSvcIdentities(serviceIdentities []identity.ServiceIde
 	}
 
 	return matchSANs
-}
-
-func subjectAltNamesToStr(sanMatchList []*xds_matcher.StringMatcher) []string {
-	var sanStr []string
-
-	for _, sanMatcher := range sanMatchList {
-		sanStr = append(sanStr, sanMatcher.GetExact())
-	}
-	return sanStr
 }
