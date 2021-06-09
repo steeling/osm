@@ -93,10 +93,12 @@ func (lb *listenerBuilder) multiClusterGatewayFilterChainForService(upstream ser
 		return nil, err
 	}
 
-	// TODO(steeling): I believe the regular http outbound filter could simply use this as well.
+	// TODO(steeling): I believe the regular http outbound filter could simply use this type of filter as well,
+	// instead of listing endpoints.
 	// It would result in a lot of dead code that could be deleted.
 	// In combination with the fact that I don't think EDS is used...
-	hostnames, _ := lb.meshCatalog.GetMultiClusterGatewayHostnames(upstream)
+	// not relevant to this PR though.
+	hostnames, _ := lb.meshCatalog.GetMultiClusterGatewayHostnames(upstream) // TODO(steeling): this should be remote-x and global here.
 	return &xds_listener.FilterChain{
 		Name:    name,
 		Filters: []*xds_listener.Filter{filter},
@@ -104,7 +106,7 @@ func (lb *listenerBuilder) multiClusterGatewayFilterChainForService(upstream ser
 			DestinationPort: &wrapperspb.UInt32Value{
 				Value: port,
 			},
-			ServerNames:          hostnames, // TODO(steeling): this should only return non-local...
+			ServerNames:          hostnames,
 			ApplicationProtocols: httpProtocols,
 		},
 	}, nil

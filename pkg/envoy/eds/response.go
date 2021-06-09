@@ -79,7 +79,7 @@ func generateEDSConfig(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy) ([
 
 	var rdsResources []types.Resource
 	for svc, endpoints := range allowedEndpoints {
-		loadAssignment := newClusterLoadAssignment(svc, endpoints) // NOTE(steeling): this is based on the service.Name, and needs to match the cluster name
+		loadAssignment := newClusterLoadAssignment(svc, endpoints)
 		rdsResources = append(rdsResources, loadAssignment)
 	}
 
@@ -100,9 +100,6 @@ func getEndpointsForProxy(meshCatalog catalog.MeshCataloger, proxyIdentity ident
 	allowedServicesEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
 
 	for _, dstSvc := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity) {
-		if !dstSvc.Local() {
-			continue
-		}
 		endpoints, err := meshCatalog.ListAllowedEndpointsForService(proxyIdentity, dstSvc)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed listing allowed endpoints for service %s for proxy identity %s", dstSvc, proxyIdentity)

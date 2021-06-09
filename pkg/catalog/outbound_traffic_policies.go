@@ -107,8 +107,13 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
 	ident := serviceIdentity.ToK8sServiceAccount()
 	if mc.IsMultiClusterGateway(serviceIdentity) {
-		// TODO(steeling): return only local.
-		return mc.listMeshServices()
+		var svcs []service.MeshService
+		for _, s := range mc.listMeshServices() {
+			if s.Local() {
+				svcs = append(svcs, s)
+			}
+		}
+		return svcs
 	}
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		return mc.listMeshServices()
@@ -141,7 +146,6 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity id
 	return allowedServices
 }
 
-//TODO(steeling): clustername, eds name  must match ....  route.cluster name is good to go
 func (mc *MeshCatalog) buildMultiClusterGatewayPolicies() []*trafficpolicy.OutboundTrafficPolicy {
 	var outPolicies []*trafficpolicy.OutboundTrafficPolicy
 
