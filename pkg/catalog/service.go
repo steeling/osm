@@ -173,10 +173,10 @@ func (mc *MeshCatalog) listMeshServices() []service.MeshService {
 	return services
 }
 
-// getServiceHostnames returns a list of hostnames corresponding to the service.
+// GetServiceHostnames returns a list of hostnames corresponding to the service.
 // If the service is in the same namespace, it returns the shorthand hostname for the service that does not
 // include its namespace, ex: bookstore, bookstore:80
-func (mc *MeshCatalog) getServiceHostnames(meshService service.MeshService, sameNamespace bool) ([]string, error) {
+func (mc *MeshCatalog) GetServiceHostnames(meshService service.MeshService, sameNamespace bool) ([]string, error) {
 	svc := mc.kubeController.GetService(meshService)
 	if svc == nil {
 		return nil, errors.Errorf("Error fetching service %q", meshService)
@@ -191,4 +191,9 @@ func getDefaultWeightedClusterForService(meshService service.MeshService) servic
 		ClusterName: service.ClusterName(meshService.String()),
 		Weight:      constants.ClusterWeightAcceptAll,
 	}
+}
+
+func (mc *MeshCatalog) GetMultiClusterGatewayHostnames(destService service.MeshService) ([]string, error) {
+	// iterate over the providers and pass in a modified service, 1 for global, 1 for this cluster.
+	return nil, nil
 }

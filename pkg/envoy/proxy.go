@@ -207,6 +207,11 @@ func (p *Proxy) Kind() ProxyKind {
 	return p.kind
 }
 
+// IsMultiClusterGateway whether or not this proxy is the multi cluster gateway.
+func (p *Proxy) IsMultiClusterGateway() bool {
+	return p.kind == KindGateway
+}
+
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
 func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificate.SerialNumber, ip net.Addr) (*Proxy, error) {
 	// Get CommonName hash for this proxy

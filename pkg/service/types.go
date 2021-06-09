@@ -22,6 +22,14 @@ func (ms MeshService) String() string {
 	return fmt.Sprintf("%s%s%s", ms.Namespace, namespaceNameSeparator, ms.Name)
 }
 
+func (ms MeshService) Local() bool {
+	return true
+}
+
+func (ms MeshService) Global() bool {
+	return false
+}
+
 // ClusterName is a type for a service name
 type ClusterName string
 

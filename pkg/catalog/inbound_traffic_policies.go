@@ -25,7 +25,7 @@ const (
 // 2. for the given service account and upstream services from SMI Traffic Target and Traffic Split
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListInboundTrafficPolicies(upstreamIdentity identity.ServiceIdentity, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
-	if mc.configurator.IsPermissiveTrafficPolicyMode() || mc.IsMultiClusterGateway(upstreamIdentity) {
+	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		var inboundPolicies []*trafficpolicy.InboundTrafficPolicy
 		for _, svc := range upstreamServices {
 			inboundPolicies = trafficpolicy.MergeInboundPolicies(DisallowPartialHostnamesMatch, inboundPolicies, mc.buildInboundPermissiveModePolicies(svc)...)
@@ -98,7 +98,7 @@ func (mc *MeshCatalog) listInboundPoliciesForTrafficSplits(upstreamIdentity iden
 			apexServices := mc.getApexServicesForBackendService(upstreamSvc)
 			for _, apexService := range apexServices {
 				// build an inbound policy for every apex service
-				hostnames, err := mc.getServiceHostnames(apexService, apexService.Namespace == upstreamServiceAccount.Namespace)
+				hostnames, err := mc.GetServiceHostnames(apexService, apexService.Namespace == upstreamServiceAccount.Namespace)
 				if err != nil {
 					log.Error().Err(err).Msgf("Error getting service hostnames for apex service %v", apexService)
 					continue
@@ -137,7 +137,7 @@ func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget, svc service
 		return inboundPolicies
 	}
 
-	hostnames, err := mc.getServiceHostnames(svc, true)
+	hostnames, err := mc.GetServiceHostnames(svc, true)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting service hostnames for service %s", svc)
 		return inboundPolicies
@@ -169,7 +169,7 @@ func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget, svc service
 func (mc *MeshCatalog) buildInboundPermissiveModePolicies(svc service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
 	var inboundPolicies []*trafficpolicy.InboundTrafficPolicy
 
-	hostnames, err := mc.getServiceHostnames(svc, true)
+	hostnames, err := mc.GetServiceHostnames(svc, true)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting service hostnames for service %s", svc)
 		return inboundPolicies

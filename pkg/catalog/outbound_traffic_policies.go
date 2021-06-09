@@ -18,7 +18,13 @@ import (
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListOutboundTrafficPolicies(downstreamIdentity identity.ServiceIdentity) []*trafficpolicy.OutboundTrafficPolicy {
 	downstreamServiceAccount := downstreamIdentity.ToK8sServiceAccount()
-	if mc.configurator.IsPermissiveTrafficPolicyMode() || mc.IsMultiClusterGateway(downstreamIdentity) {
+	if mc.IsMultiClusterGateway(downstreamIdentity) {
+		var outboundPolicies []*trafficpolicy.OutboundTrafficPolicy
+		mergedPolicies := trafficpolicy.MergeOutboundPolicies(DisallowPartialHostnamesMatch, outboundPolicies, mc.buildMultiClusterGatewayPolicies()...)
+		outboundPolicies = mergedPolicies
+		return outboundPolicies
+	}
+	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		var outboundPolicies []*trafficpolicy.OutboundTrafficPolicy
 		mergedPolicies := trafficpolicy.MergeOutboundPolicies(DisallowPartialHostnamesMatch, outboundPolicies, mc.buildOutboundPermissiveModePolicies()...)
 		outboundPolicies = mergedPolicies
@@ -66,7 +72,7 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 			Namespace: split.Namespace,
 		}
 
-		hostnames, err := mc.getServiceHostnames(svc, svc.Namespace == sourceNamespace)
+		hostnames, err := mc.GetServiceHostnames(svc, svc.Namespace == sourceNamespace)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting service hostnames for apex service %v", svc)
 			continue
@@ -100,7 +106,11 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
 	ident := serviceIdentity.ToK8sServiceAccount()
-	if mc.configurator.IsPermissiveTrafficPolicyMode() || mc.IsMultiClusterGateway(serviceIdentity) {
+	if mc.IsMultiClusterGateway(serviceIdentity) {
+		// TODO(steeling): return only local.
+		return mc.listMeshServices()
+	}
+	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		return mc.listMeshServices()
 	}
 
@@ -131,6 +141,37 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity id
 	return allowedServices
 }
 
+//TODO(steeling): clustername, eds name  must match ....  route.cluster name is good to go
+func (mc *MeshCatalog) buildMultiClusterGatewayPolicies() []*trafficpolicy.OutboundTrafficPolicy {
+	var outPolicies []*trafficpolicy.OutboundTrafficPolicy
+
+	k8sServices := mc.kubeController.ListServices()
+	var destServices []service.MeshService
+	for _, k8sService := range k8sServices {
+		destServices = append(destServices, utils.K8sSvcToMeshSvc(k8sService))
+	}
+
+	for _, destService := range destServices {
+		if !destService.Local() {
+			continue
+		}
+		hostnames, err := mc.GetMultiClusterGatewayHostnames(destService)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error getting service hostnames for service %s", destService)
+			continue
+		}
+
+		weightedCluster := getDefaultWeightedClusterForService(destService)
+		policy := trafficpolicy.NewOutboundTrafficPolicy(buildPolicyName(destService, false), hostnames)
+		if err := policy.AddRoute(trafficpolicy.WildCardRouteMatch, weightedCluster); err != nil {
+			log.Error().Err(err).Msgf("Error adding route to outbound policy in permissive mode for destination %s(%s)", destService.Name, destService.Namespace)
+			continue
+		}
+		outPolicies = append(outPolicies, policy)
+	}
+	return outPolicies
+}
+
 func (mc *MeshCatalog) buildOutboundPermissiveModePolicies() []*trafficpolicy.OutboundTrafficPolicy {
 	var outPolicies []*trafficpolicy.OutboundTrafficPolicy
 
@@ -141,7 +182,8 @@ func (mc *MeshCatalog) buildOutboundPermissiveModePolicies() []*trafficpolicy.Ou
 	}
 
 	for _, destService := range destServices {
-		hostnames, err := mc.getServiceHostnames(destService, false)
+		// TODO(steeling): shouldn't this check the source namespace.... not relevant to this PR though.
+		hostnames, err := mc.GetServiceHostnames(destService, false)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting service hostnames for service %s", destService)
 			continue
@@ -182,7 +224,7 @@ func (mc *MeshCatalog) buildOutboundPolicies(sourceServiceIdentity identity.Serv
 		// Do not build an outbound policy if the destination service is an apex service in a traffic target
 		// this will be handled while building policies from traffic split (with the backend services as weighted clusters)
 		if !mc.isTrafficSplitApexService(destService) {
-			hostnames, err := mc.getServiceHostnames(destService, source.Namespace == destService.Namespace)
+			hostnames, err := mc.GetServiceHostnames(destService, source.Namespace == destService.Namespace)
 			if err != nil {
 				log.Error().Err(err).Msgf("Error getting service hostnames for service %s", destService)
 				continue
@@ -292,6 +334,10 @@ func (mc *MeshCatalog) ListMeshServicesForIdentity(identity identity.ServiceIden
 	splitPolicy := mc.meshSpec.ListTrafficSplits()
 
 	for upstreamSvc := range dstServicesSet {
+		// Traffic Splits aren't yet supported for non-local services.
+		if !upstreamSvc.Local() {
+			continue
+		}
 		for _, split := range splitPolicy {
 			// Split policy must be in the same namespace as the upstream service that is a backend
 			if split.Namespace != upstreamSvc.Namespace {

@@ -30,6 +30,23 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		return nil, err
 	}
 
+	if IsGateway {
+		// Build remote clusters based on allowed outbound services
+		for _, dstService := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity.ToServiceIdentity()) {
+			if !dstService.Local() {
+				continue
+			}
+			cluster, err := getUpstreamServiceCluster(proxyIdentity.ToServiceIdentity(), dstService, cfg)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to construct service cluster for service %s for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
+					dstService.Name, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+				return nil, err
+			}
+
+			clusters = append(clusters, cluster)
+		}
+		return makeResources(proxy, clusters), nil
+	}
 	// Build remote clusters based on allowed outbound services
 	for _, dstService := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity.ToServiceIdentity()) {
 		cluster, err := getUpstreamServiceCluster(proxyIdentity.ToServiceIdentity(), dstService, cfg)
@@ -63,14 +80,13 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		}
 	}
 
-	outboundPassthroughCluser, err := getOriginalDestinationEgressCluster(envoy.OutboundPassthroughCluster)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to passthrough cluster for egress for proxy %s", envoy.OutboundPassthroughCluster)
-		return nil, err
-	}
-
 	// Add an outbound passthrough cluster for egress if global mesh-wide Egress is enabled
 	if cfg.IsEgressEnabled() {
+		outboundPassthroughCluser, err := getOriginalDestinationEgressCluster(envoy.OutboundPassthroughCluster)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to passthrough cluster for egress for proxy %s", envoy.OutboundPassthroughCluster)
+			return nil, err
+		}
 		clusters = append(clusters, outboundPassthroughCluser)
 	}
 
@@ -86,6 +102,10 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		clusters = append(clusters, getTracingCluster(cfg))
 	}
 
+	return makeResources(proxy, clusters), nil
+}
+
+func makeResources(proxy *envoy.Proxy, clusters []*xds_cluster.Cluster) []types.Resource {
 	alreadyAdded := mapset.NewSet()
 	var cdsResources []types.Resource
 	for _, cluster := range clusters {
@@ -97,6 +117,4 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		alreadyAdded.Add(cluster.Name)
 		cdsResources = append(cdsResources, cluster)
 	}
-
-	return cdsResources, nil
 }

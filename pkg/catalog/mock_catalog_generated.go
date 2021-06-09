@@ -5,14 +5,13 @@
 package catalog
 
 import (
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	endpoint "github.com/openservicemesh/osm/pkg/endpoint"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	kubernetes "github.com/openservicemesh/osm/pkg/kubernetes"
 	service "github.com/openservicemesh/osm/pkg/service"
 	trafficpolicy "github.com/openservicemesh/osm/pkg/trafficpolicy"
+	reflect "reflect"
 )
 
 // MockMeshCataloger is a mock of MeshCataloger interface
@@ -110,6 +109,21 @@ func (m *MockMeshCataloger) GetResolvableServiceEndpoints(arg0 service.MeshServi
 func (mr *MockMeshCatalogerMockRecorder) GetResolvableServiceEndpoints(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResolvableServiceEndpoints", reflect.TypeOf((*MockMeshCataloger)(nil).GetResolvableServiceEndpoints), arg0)
+}
+
+// GetServiceHostnames mocks base method
+func (m *MockMeshCataloger) GetServiceHostnames(arg0 service.MeshService, arg1 bool) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetServiceHostnames", arg0, arg1)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetServiceHostnames indicates an expected call of GetServiceHostnames
+func (mr *MockMeshCatalogerMockRecorder) GetServiceHostnames(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServiceHostnames", reflect.TypeOf((*MockMeshCataloger)(nil).GetServiceHostnames), arg0, arg1)
 }
 
 // GetTargetPortToProtocolMappingForService mocks base method
