@@ -13,10 +13,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 )
 
-var (
-	mmap map[envoy.ProxyKind]func() []types.Resource
-)
-
 // NewResponse creates a new Listener Discovery Response.
 // The response build 3 Listeners:
 // 1. Inbound listener to handle incoming traffic

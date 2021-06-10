@@ -163,7 +163,7 @@ func (mc *MeshCatalog) buildMultiClusterGatewayPolicies() []*trafficpolicy.Outbo
 		if !destService.Local() {
 			continue
 		}
-		hostnames, err := mc.GetMultiClusterGatewayHostnames(destService)
+		hostnames, err := mc.GetServiceHostnames(destService, service.RemoteCluster)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting service hostnames for service %s", destService)
 			continue
@@ -243,7 +243,7 @@ func (mc *MeshCatalog) buildOutboundPolicies(sourceServiceIdentity identity.Serv
 			}
 			weightedCluster := getDefaultWeightedClusterForService(destService)
 
-			policy := trafficpolicy.NewOutboundTrafficPolicy(destService.String(), hostnames)
+			policy := trafficpolicy.NewOutboundTrafficPolicy(destService.FullName(), hostnames)
 			needWildCardRoute := false
 			for _, routeMatch := range routeMatches {
 				// If the traffic target has a route with host headers

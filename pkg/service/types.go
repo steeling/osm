@@ -37,11 +37,16 @@ func (ms MeshService) String() string {
 
 // FullName is similar to String(), but uses a dot separator and is in a different order.
 func (ms MeshService) FullName() string {
-	return strings.Join([]string{ms.Name, ms.Namespace}, ".")
+	if ms.Cluster == "" {
+		ms.Cluster = "local"
+	}
+	return strings.Join([]string{ms.Name, ms.Namespace, ms.Cluster}, ".")
 }
 
+// Local returns whether or not this is service is in the local cluster.
 func (ms MeshService) Local() bool {
-	return ms.Cluster == "local"
+	// TODO(steeling): if it's unset consider it local for now.
+	return ms.Cluster == "local" || ms.Cluster == ""
 }
 
 // ClusterName is a type for a service name

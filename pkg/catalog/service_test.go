@@ -589,7 +589,7 @@ func TestGetServiceHostnames(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("Testing hostnames for svc %s with locality=%t", tc.svc, tc.locality), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Testing hostnames for svc %s with locality=%d", tc.svc, tc.locality), func(t *testing.T) {
 			actual, err := mc.GetServiceHostnames(tc.svc, tc.locality)
 			assert.Nil(err)
 			assert.ElementsMatch(actual, tc.expected)

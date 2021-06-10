@@ -192,8 +192,3 @@ func getDefaultWeightedClusterForService(meshService service.MeshService) servic
 		Weight:      constants.ClusterWeightAcceptAll,
 	}
 }
-
-func (mc *MeshCatalog) GetMultiClusterGatewayHostnames(destService service.MeshService) ([]string, error) {
-	// iterate over the providers and pass in a modified service, 1 for global, 1 for this cluster.
-	return nil, nil
-}
