@@ -103,8 +103,11 @@ type MeshCataloger interface {
 	// GetKubeController returns the kube controller instance handling the current cluster
 	GetKubeController() k8s.Controller
 
-	// GetServiceHostnames returns the hostnames for this service.
-	GetServiceHostnames(service.MeshService, bool) ([]string, error)
+	// GetServiceHostnames returns the hostnames for this service, based on the locality of the source.
+	GetServiceHostnames(service.MeshService, service.Locality) ([]string, error)
+
+	// IsMultiClusterGateway returns whether or not the service identity belongs to the multicluster gateway.
+	IsMultiClusterGateway(identity.ServiceIdentity) bool
 }
 
 type trafficDirection string

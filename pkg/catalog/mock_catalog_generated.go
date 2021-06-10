@@ -112,7 +112,7 @@ func (mr *MockMeshCatalogerMockRecorder) GetResolvableServiceEndpoints(arg0 inte
 }
 
 // GetServiceHostnames mocks base method
-func (m *MockMeshCataloger) GetServiceHostnames(arg0 service.MeshService, arg1 bool) ([]string, error) {
+func (m *MockMeshCataloger) GetServiceHostnames(arg0 service.MeshService, arg1 service.Locality) ([]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetServiceHostnames", arg0, arg1)
 	ret0, _ := ret[0].([]string)
@@ -153,6 +153,20 @@ func (m *MockMeshCataloger) GetWeightedClustersForUpstream(arg0 service.MeshServ
 func (mr *MockMeshCatalogerMockRecorder) GetWeightedClustersForUpstream(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWeightedClustersForUpstream", reflect.TypeOf((*MockMeshCataloger)(nil).GetWeightedClustersForUpstream), arg0)
+}
+
+// IsMultiClusterGateway mocks base method
+func (m *MockMeshCataloger) IsMultiClusterGateway(arg0 identity.ServiceIdentity) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsMultiClusterGateway", arg0)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsMultiClusterGateway indicates an expected call of IsMultiClusterGateway
+func (mr *MockMeshCatalogerMockRecorder) IsMultiClusterGateway(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsMultiClusterGateway", reflect.TypeOf((*MockMeshCataloger)(nil).IsMultiClusterGateway), arg0)
 }
 
 // ListAllowedEndpointsForService mocks base method

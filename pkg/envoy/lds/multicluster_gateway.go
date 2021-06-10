@@ -13,25 +13,20 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-func (lb *listenerBuilder) newMultiClusterGatewayListener() (*xds_listener.Listener, error) {
-	serviceFilterChains := lb.getMultiClusterGatewayFilterChainPerUpstream()
-
-	listener := &xds_listener.Listener{
+func (lb *listenerBuilder) newMultiClusterGatewayListener() *xds_listener.Listener {
+	return &xds_listener.Listener{
 		Name:    multiclusterListenerName,
 		Address: envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort),
 		// TODO(steeling) for this to work on windows, there needs to be an inbound and an outbound listener
 		// see: https://www.envoyproxy.io/docs/envoy/latest/configuration/listeners/listener_filters/original_dst_filter#config-listener-filters-original-dst
 		// TrafficDirection: ...,
-		FilterChains: serviceFilterChains,
+		FilterChains: lb.getMultiClusterGatewayFilterChainPerUpstream(),
 		ListenerFilters: []*xds_listener.ListenerFilter{
 			{
-				// The OriginalDestination ListenerFilter is used to redirect traffic
-				// to its original destination.
 				Name: wellknown.OriginalDestination,
 			},
 		},
 	}
-	return listener, nil
 }
 
 func (lb *listenerBuilder) getMultiClusterGatewayFilterChainPerUpstream() []*xds_listener.FilterChain {
@@ -45,9 +40,7 @@ func (lb *listenerBuilder) getMultiClusterGatewayFilterChainPerUpstream() []*xds
 
 	// Iterate all destination services
 	for _, upstream := range dstServices {
-		// Filter out to only the local and global services.
-		// TODO(steeling): local here needs to the remote name.
-		if !upstream.Local() || !upstream.Global() {
+		if !upstream.Local() {
 			continue
 		}
 
@@ -73,17 +66,19 @@ func (lb *listenerBuilder) getMultiClusterGatewayFilterChainPerUpstream() []*xds
 
 func (lb *listenerBuilder) multiClusterGatewayFilterChainForService(upstream service.MeshService, port uint32, protocol string) (*xds_listener.FilterChain, error) {
 	var (
-		filter *xds_listener.Filter
-		name   string
-		err    error
+		filter    *xds_listener.Filter
+		name      string
+		err       error
+		protocols []string
 	)
 	// We use the same filter as outbound for the multicluster gateway.
 	if protocol == constants.ProtocolHTTP || protocol == constants.ProtocolGRPC {
 		filter, err = lb.getOutboundHTTPFilter(route.OutboundRouteConfigName)
 		name = fmt.Sprintf("%s:%s", outboundMeshHTTPFilterChainPrefix, upstream)
+		protocols = httpProtocols
 	} else if protocol == constants.ProtocolTCP {
 		filter, err = lb.getOutboundTCPFilter(upstream)
-		name = fmt.Sprintf("%s:%s", outboundMeshHTTPFilterChainPrefix, upstream)
+		name = fmt.Sprintf("%s:%s", outboundMeshTCPFilterChainPrefix, upstream)
 	} else {
 		return nil, fmt.Errorf("Cannot build outbound filter chain, unsupported protocol %s for upstream:port %s:%d", protocol, upstream, port)
 	}
@@ -96,9 +91,11 @@ func (lb *listenerBuilder) multiClusterGatewayFilterChainForService(upstream ser
 	// TODO(steeling): I believe the regular http outbound filter could simply use this type of filter as well,
 	// instead of listing endpoints.
 	// It would result in a lot of dead code that could be deleted.
-	// In combination with the fact that I don't think EDS is used...
-	// not relevant to this PR though.
-	hostnames, _ := lb.meshCatalog.GetMultiClusterGatewayHostnames(upstream) // TODO(steeling): this should be remote-x and global here.
+	hostnames, err := lb.meshCatalog.GetServiceHostnames(upstream, service.RemoteCluster)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting service hostnames from remote cluster for %s", upstream)
+		return nil, err
+	}
 	return &xds_listener.FilterChain{
 		Name:    name,
 		Filters: []*xds_listener.Filter{filter},
@@ -107,7 +104,7 @@ func (lb *listenerBuilder) multiClusterGatewayFilterChainForService(upstream ser
 				Value: port,
 			},
 			ServerNames:          hostnames,
-			ApplicationProtocols: httpProtocols,
+			ApplicationProtocols: protocols,
 		},
 	}, nil
 }

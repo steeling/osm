@@ -1844,39 +1844,3 @@ func TestGetTrafficSpecName(t *testing.T) {
 	expected := trafficpolicy.TrafficSpecName(fmt.Sprintf("HTTPRouteGroup/%s/%s", tests.Namespace, tests.RouteGroupName))
 	assert.Equal(actual, expected)
 }
-
-func TestBuildPolicyName(t *testing.T) {
-	assert := tassert.New(t)
-
-	svc := service.MeshService{
-		Namespace: "default",
-		Name:      "foo",
-	}
-
-	testCases := []struct {
-		name          string
-		svc           service.MeshService
-		sameNamespace bool
-		expectedName  string
-	}{
-		{
-			name:          "same namespace",
-			svc:           svc,
-			sameNamespace: true,
-			expectedName:  "foo",
-		},
-		{
-			name:          "different namespace",
-			svc:           svc,
-			sameNamespace: false,
-			expectedName:  "foo.default",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			actual := buildPolicyName(tc.svc, tc.sameNamespace)
-			assert.Equal(tc.expectedName, actual)
-		})
-	}
-}

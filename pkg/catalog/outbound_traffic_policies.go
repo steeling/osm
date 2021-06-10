@@ -72,12 +72,16 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 			Namespace: split.Namespace,
 		}
 
-		hostnames, err := mc.GetServiceHostnames(svc, svc.Namespace == sourceNamespace)
+		locality := service.LocalCluster
+		if svc.Namespace == sourceNamespace {
+			locality = service.LocalNS
+		}
+		hostnames, err := mc.GetServiceHostnames(svc, locality)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting service hostnames for apex service %v", svc)
 			continue
 		}
-		policy := trafficpolicy.NewOutboundTrafficPolicy(buildPolicyName(svc, sourceNamespace == svc.Namespace), hostnames)
+		policy := trafficpolicy.NewOutboundTrafficPolicy(svc.FullName(), hostnames)
 
 		var weightedClusters []service.WeightedCluster
 		for _, backend := range split.Spec.Backends {
@@ -166,7 +170,7 @@ func (mc *MeshCatalog) buildMultiClusterGatewayPolicies() []*trafficpolicy.Outbo
 		}
 
 		weightedCluster := getDefaultWeightedClusterForService(destService)
-		policy := trafficpolicy.NewOutboundTrafficPolicy(buildPolicyName(destService, false), hostnames)
+		policy := trafficpolicy.NewOutboundTrafficPolicy(destService.FullName(), hostnames)
 		if err := policy.AddRoute(trafficpolicy.WildCardRouteMatch, weightedCluster); err != nil {
 			log.Error().Err(err).Msgf("Error adding route to outbound policy in permissive mode for destination %s(%s)", destService.Name, destService.Namespace)
 			continue
@@ -187,14 +191,14 @@ func (mc *MeshCatalog) buildOutboundPermissiveModePolicies() []*trafficpolicy.Ou
 
 	for _, destService := range destServices {
 		// TODO(steeling): shouldn't this check the source namespace.... not relevant to this PR though.
-		hostnames, err := mc.GetServiceHostnames(destService, false)
+		hostnames, err := mc.GetServiceHostnames(destService, service.LocalCluster)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting service hostnames for service %s", destService)
 			continue
 		}
 
 		weightedCluster := getDefaultWeightedClusterForService(destService)
-		policy := trafficpolicy.NewOutboundTrafficPolicy(buildPolicyName(destService, false), hostnames)
+		policy := trafficpolicy.NewOutboundTrafficPolicy(destService.FullName(), hostnames)
 		if err := policy.AddRoute(trafficpolicy.WildCardRouteMatch, weightedCluster); err != nil {
 			log.Error().Err(err).Msgf("Error adding route to outbound policy in permissive mode for destination %s(%s)", destService.Name, destService.Namespace)
 			continue
@@ -228,14 +232,18 @@ func (mc *MeshCatalog) buildOutboundPolicies(sourceServiceIdentity identity.Serv
 		// Do not build an outbound policy if the destination service is an apex service in a traffic target
 		// this will be handled while building policies from traffic split (with the backend services as weighted clusters)
 		if !mc.isTrafficSplitApexService(destService) {
-			hostnames, err := mc.GetServiceHostnames(destService, source.Namespace == destService.Namespace)
+			locality := service.LocalCluster
+			if destService.Namespace == source.Namespace {
+				locality = service.LocalNS
+			}
+			hostnames, err := mc.GetServiceHostnames(destService, locality)
 			if err != nil {
 				log.Error().Err(err).Msgf("Error getting service hostnames for service %s", destService)
 				continue
 			}
 			weightedCluster := getDefaultWeightedClusterForService(destService)
 
-			policy := trafficpolicy.NewOutboundTrafficPolicy(buildPolicyName(destService, source.Namespace == destService.Namespace), hostnames)
+			policy := trafficpolicy.NewOutboundTrafficPolicy(destService.String(), hostnames)
 			needWildCardRoute := false
 			for _, routeMatch := range routeMatches {
 				// If the traffic target has a route with host headers

@@ -1,12 +1,23 @@
 // Package service models an instance of a service managed by OSM controller and utility routines associated with it.
 package service
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 const (
 	// namespaceNameSeparator used upon marshalling/unmarshalling MeshService to a string
 	// or viceversa
 	namespaceNameSeparator = "/"
+)
+
+type Locality int
+
+const (
+	LocalNS Locality = iota
+	LocalCluster
+	RemoteCluster
 )
 
 // MeshService is the struct defining a service (Kubernetes or otherwise) within a service mesh.
@@ -16,18 +27,21 @@ type MeshService struct {
 
 	// The name of the service
 	Name string
+
+	Cluster string
 }
 
 func (ms MeshService) String() string {
 	return fmt.Sprintf("%s%s%s", ms.Namespace, namespaceNameSeparator, ms.Name)
 }
 
-func (ms MeshService) Local() bool {
-	return true
+// FullName is similar to String(), but uses a dot separator and is in a different order.
+func (ms MeshService) FullName() string {
+	return strings.Join([]string{ms.Name, ms.Namespace}, ".")
 }
 
-func (ms MeshService) Global() bool {
-	return false
+func (ms MeshService) Local() bool {
+	return ms.Cluster == "local"
 }
 
 // ClusterName is a type for a service name

@@ -13,7 +13,16 @@ import (
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
+)
+
+var (
+	bookstoreSvc     = service.MeshService{Namespace: "bookstore", Name: "bookstore-v1", Cluster: "local"}
+	bookwarehouseSvc = service.MeshService{Namespace: "bookwarehouse", Name: "bookwarehouse", Cluster: "local"}
 )
 
 func TestNewMultiClusterGatewayListener(t *testing.T) {
@@ -30,62 +39,119 @@ func TestNewMultiClusterGatewayListener(t *testing.T) {
 	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
 		Enable: false,
 	}).AnyTimes()
+	mockCatalog.EXPECT().GetWeightedClustersForUpstream(bookstoreSvc).AnyTimes()
+	mockCatalog.EXPECT().GetWeightedClustersForUpstream(bookwarehouseSvc).AnyTimes()
 
 	lb := &listenerBuilder{
-		meshCatalog:     mockCatalog,
-		cfg:             mockConfigurator,
+		meshCatalog: mockCatalog,
+		cfg:         mockConfigurator,
+		// let's pretend the bookbuyer can reach out to the warehouse over TCP, the bookstore-v1 on 2 different ports
+		// over http.
 		serviceIdentity: tests.BookbuyerServiceIdentity,
 	}
 
-	proxyService := tests.BookbuyerService
+	// GetServiceHostnames
+	mockCatalog.EXPECT().ListMeshServicesForIdentity(lb.serviceIdentity).Return([]service.MeshService{
+		bookstoreSvc,
+		bookwarehouseSvc,
+		// These should not affect the gateway.
+		{Namespace: "bookwarehouse", Name: "bookwarehouse", Cluster: "remote-y"},
+		{Namespace: "bookwarehouse", Name: "bookwarehouse", Cluster: "global"},
+	}).AnyTimes()
 
-	testCases := []struct {
-		name string
-		port uint32
+	mockCatalog.EXPECT().GetServiceHostnames(
+		service.MeshService{
+			Namespace: "bookstore",
+			Name:      "bookstore-v1",
+			Cluster:   "local"}, service.RemoteCluster).Return(
+		[]string{
+			"bookstore-v1.bookstore.svc.cluster.cluster-x",
+			"bookstore-v1.bookstore.svc.cluster.global",
+		}, nil).AnyTimes()
 
-		expectedFilterChainMatch *xds_listener.FilterChainMatch
-		expectedFilterNames      []string
-		expectError              bool
-	}{
-		{
-			name: "gateway HTTP filter chain with permissive mode disabled",
-			port: 80,
-			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
-				DestinationPort:      &wrapperspb.UInt32Value{Value: 80},
-				ServerNames:          []string{proxyService.ServerName()},
-				TransportProtocol:    "tls",
-				ApplicationProtocols: []string{"osm"},
+	mockCatalog.EXPECT().GetServiceHostnames(
+		service.MeshService{
+			Namespace: "bookwarehouse",
+			Name:      "bookwarehouse",
+			Cluster:   "local"}, service.RemoteCluster).Return(
+		[]string{
+			"bookwarehouse.bookwarehouse.svc.cluster.cluster-x",
+			"bookwarehouse.bookwarehouse.svc.cluster.global",
+		}, nil).AnyTimes()
+
+	mockCatalog.EXPECT().GetPortToProtocolMappingForService(bookstoreSvc).Return(
+		map[uint32]string{8080: constants.ProtocolHTTP, 8081: constants.ProtocolTCP}, nil).AnyTimes()
+
+	mockCatalog.EXPECT().GetPortToProtocolMappingForService(bookwarehouseSvc).Return(
+		map[uint32]string{8082: constants.ProtocolHTTP}, nil).AnyTimes()
+
+	httpFilter, err := lb.getOutboundHTTPFilter(route.OutboundRouteConfigName)
+	assert.NoError(err)
+	tcpFilter, err := lb.getOutboundTCPFilter(bookstoreSvc)
+	assert.NoError(err)
+	expectedListener := &xds_listener.Listener{
+		Name:    multiclusterListenerName,
+		Address: envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort),
+		FilterChains: []*xds_listener.FilterChain{
+			{
+				Name:    fmt.Sprintf("%s:%s", outboundMeshHTTPFilterChainPrefix, bookstoreSvc),
+				Filters: []*xds_listener.Filter{httpFilter}, // We're not testing the filter, which is mostly static.
+				FilterChainMatch: &xds_listener.FilterChainMatch{
+					DestinationPort: &wrapperspb.UInt32Value{
+						Value: 8080,
+					},
+					ServerNames: []string{
+						"bookstore-v1.bookstore.svc.cluster.cluster-x",
+						"bookstore-v1.bookstore.svc.cluster.global",
+					},
+					ApplicationProtocols: httpProtocols,
+				},
 			},
-			expectedFilterNames: []string{wellknown.RoleBasedAccessControl, wellknown.HTTPConnectionManager},
-			expectError:         false,
+			{
+				Name:    fmt.Sprintf("%s:%s", outboundMeshTCPFilterChainPrefix, bookstoreSvc),
+				Filters: []*xds_listener.Filter{tcpFilter}, // We're not testing the filter, which is mostly static.
+				FilterChainMatch: &xds_listener.FilterChainMatch{
+					DestinationPort: &wrapperspb.UInt32Value{
+						Value: 8081,
+					},
+					ServerNames: []string{
+						"bookstore-v1.bookstore.svc.cluster.cluster-x",
+						"bookstore-v1.bookstore.svc.cluster.global",
+					},
+				},
+			},
+			{
+				Name:    fmt.Sprintf("%s:%s", outboundMeshHTTPFilterChainPrefix, bookwarehouseSvc),
+				Filters: []*xds_listener.Filter{httpFilter}, // We're not testing the filter, which is mostly static.
+				FilterChainMatch: &xds_listener.FilterChainMatch{
+					DestinationPort: &wrapperspb.UInt32Value{
+						Value: 8082,
+					},
+					ServerNames: []string{
+						"bookwarehouse.bookwarehouse.svc.cluster.cluster-x",
+						"bookwarehouse.bookwarehouse.svc.cluster.global",
+					},
+					ApplicationProtocols: httpProtocols,
+				},
+			},
 		},
-
-		{
-			name: "gateway HTTP filter chain with permissive mode enabled",
-			port: 90,
-			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
-				DestinationPort:      &wrapperspb.UInt32Value{Value: 90},
-				ServerNames:          []string{proxyService.ServerName()},
-				TransportProtocol:    "tls",
-				ApplicationProtocols: []string{"osm"},
+		ListenerFilters: []*xds_listener.ListenerFilter{
+			{
+				Name: wellknown.OriginalDestination,
 			},
-			expectedFilterNames: []string{wellknown.HTTPConnectionManager},
-			expectError:         false,
 		},
 	}
+	actualListener := lb.newMultiClusterGatewayListener()
+	// Can't simply compare these types unfortunately.
+	assert.Equal(len(expectedListener.FilterChains), len(actualListener.FilterChains))
+	for i := range expectedListener.FilterChains {
+		expectedFC := expectedListener.FilterChains[i]
+		actualFC := expectedListener.FilterChains[i]
 
-	for i, tc := range testCases {
-		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(lb.serviceIdentity).Return(trafficTargets, nil).Times(1)
-
-			filterChain, err := lb.getInboundMeshHTTPFilterChain(proxyService, tc.port)
-
-			assert.Equal(err != nil, tc.expectError)
-			assert.Equal(filterChain.FilterChainMatch, tc.expectedFilterChainMatch)
-			assert.Len(filterChain.Filters, len(tc.expectedFilterNames))
-			for i, filter := range filterChain.Filters {
-				assert.Equal(filter.Name, tc.expectedFilterNames[i])
-			}
-		})
+		assert.Equal(expectedFC.FilterChainMatch, actualFC.FilterChainMatch)
+		assert.Len(expectedFC.Filters, len(actualFC.Filters))
+		for i := range expectedFC.Filters {
+			assert.Equal(expectedFC.Filters[i], actualFC.Filters[i])
+		}
 	}
 }

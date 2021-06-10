@@ -30,13 +30,15 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		return nil, err
 	}
 
-	if IsGateway {
+	svcID := proxyIdentity.ToServiceIdentity()
+
+	if meshCatalog.IsMultiClusterGateway(svcID) {
 		// Build remote clusters based on allowed outbound services
-		for _, dstService := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity.ToServiceIdentity()) {
+		for _, dstService := range meshCatalog.ListAllowedOutboundServicesForIdentity(svcID) {
 			if !dstService.Local() {
 				continue
 			}
-			cluster, err := getUpstreamServiceCluster(proxyIdentity.ToServiceIdentity(), dstService, cfg)
+			cluster, err := getUpstreamServiceCluster(svcID, dstService, cfg)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed to construct service cluster for service %s for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
 					dstService.Name, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
@@ -48,8 +50,8 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		return makeResources(proxy, clusters), nil
 	}
 	// Build remote clusters based on allowed outbound services
-	for _, dstService := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity.ToServiceIdentity()) {
-		cluster, err := getUpstreamServiceCluster(proxyIdentity.ToServiceIdentity(), dstService, cfg)
+	for _, dstService := range meshCatalog.ListAllowedOutboundServicesForIdentity(svcID) {
+		cluster, err := getUpstreamServiceCluster(svcID, dstService, cfg)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to construct service cluster for service %s for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
 				dstService.Name, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
@@ -72,7 +74,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 
 	// Add egress clusters based on applied policies
-	if egressTrafficPolicy, err := meshCatalog.GetEgressTrafficPolicy(proxyIdentity.ToServiceIdentity()); err != nil {
+	if egressTrafficPolicy, err := meshCatalog.GetEgressTrafficPolicy(svcID); err != nil {
 		log.Error().Err(err).Msgf("Error retrieving egress policies for proxy with identity %s, skipping egress clusters", proxyIdentity)
 	} else {
 		if egressTrafficPolicy != nil {
@@ -105,9 +107,8 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	return makeResources(proxy, clusters), nil
 }
 
-func makeResources(proxy *envoy.Proxy, clusters []*xds_cluster.Cluster) []types.Resource {
+func makeResources(proxy *envoy.Proxy, clusters []*xds_cluster.Cluster) (cdsResources []types.Resource) {
 	alreadyAdded := mapset.NewSet()
-	var cdsResources []types.Resource
 	for _, cluster := range clusters {
 		if alreadyAdded.Contains(cluster.Name) {
 			log.Error().Msgf("Found duplicate clusters with name %s; Duplicate will not be sent to Envoy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
@@ -117,4 +118,5 @@ func makeResources(proxy *envoy.Proxy, clusters []*xds_cluster.Cluster) []types.
 		alreadyAdded.Add(cluster.Name)
 		cdsResources = append(cdsResources, cluster)
 	}
+	return cdsResources
 }

@@ -29,7 +29,6 @@ const (
 )
 
 func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error) {
-	// TODO(steeling): I believe there only needs to be 2 filter chains, 1 HTTP, 1 tcp... not relevant to this PR.
 	serviceFilterChains := lb.getOutboundFilterChainPerUpstream()
 
 	listener := &xds_listener.Listener{
