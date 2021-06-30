@@ -78,6 +78,20 @@ func (mr *MockProviderMockRecorder) GetPortToProtocolMappingForService(arg0 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPortToProtocolMappingForService", reflect.TypeOf((*MockProvider)(nil).GetPortToProtocolMappingForService), arg0)
 }
 
+// GetServicesByNameNamespace mocks base method
+func (m *MockProvider) GetServicesByNameNamespace(arg0, arg1 string) []MeshService {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetServicesByNameNamespace", arg0, arg1)
+	ret0, _ := ret[0].([]MeshService)
+	return ret0
+}
+
+// GetServicesByNameNamespace indicates an expected call of GetServicesByNameNamespace
+func (mr *MockProviderMockRecorder) GetServicesByNameNamespace(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicesByNameNamespace", reflect.TypeOf((*MockProvider)(nil).GetServicesByNameNamespace), arg0, arg1)
+}
+
 // GetServicesForServiceAccount mocks base method
 func (m *MockProvider) GetServicesForServiceAccount(arg0 identity.ServiceIdentity) ([]MeshService, error) {
 	m.ctrl.T.Helper()

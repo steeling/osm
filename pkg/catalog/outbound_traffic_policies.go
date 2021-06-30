@@ -203,46 +203,48 @@ func (mc *MeshCatalog) buildOutboundPolicies(sourceServiceIdentity identity.Serv
 
 	// build an outbound traffic policy for each destination service
 	for _, destService := range destServices {
-		// Do not build an outbound policy if the destination service is an apex service in a traffic target
-		// this will be handled while building policies from traffic split (with the backend services as weighted clusters)
-		if !mc.isTrafficSplitApexService(destService) {
-			locality := service.LocalCluster
-			if destService.Namespace == source.Namespace {
-				locality = service.LocalNS
-			}
-			hostnames, err := mc.GetServiceHostnames(destService, locality)
-			if err != nil {
-				log.Error().Err(err).Msgf("Error getting service hostnames for service %s", destService)
-				continue
-			}
-			weightedCluster := getDefaultWeightedClusterForService(destService)
+		// Do not build an outbound policy if the destination service is an apex service in a traffic target or a global
+		// service. this will be handled while building policies from traffic split (with the backend services as
+		// weighted clusters), and the global service.
+		if mc.isTrafficSplitApexService(destService) || destService.Global() {
+			continue
+		}
+		locality := service.LocalCluster
+		if destService.Namespace == source.Namespace {
+			locality = service.LocalNS
+		}
+		hostnames, err := mc.GetServiceHostnames(destService, locality)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error getting service hostnames for service %s", destService)
+			continue
+		}
+		weightedCluster := getDefaultWeightedClusterForService(destService)
 
-			policy := trafficpolicy.NewOutboundTrafficPolicy(destService.FQDN(), hostnames)
-			needWildCardRoute := false
-			for _, routeMatch := range routeMatches {
-				// If the traffic target has a route with host headers
-				// we need to create a new outbound traffic policy with the host header as the required hostnames
-				// else the hosnames will be hostnames corresponding to the service
-				if _, ok := routeMatch.Headers[hostHeaderKey]; ok {
-					policyWithHostHeader := trafficpolicy.NewOutboundTrafficPolicy(routeMatch.Headers[hostHeaderKey], []string{routeMatch.Headers[hostHeaderKey]})
-					if err := policyWithHostHeader.AddRoute(trafficpolicy.WildCardRouteMatch, weightedCluster); err != nil {
-						log.Error().Err(err).Msgf("Error adding Route to outbound policy for source %s(%s) and destination %s (%s) with host header %s", source.Name, source.Namespace, destService.Name, destService.Namespace, routeMatch.Headers[hostHeaderKey])
-						continue
-					}
-					outboundPolicies = trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, outboundPolicies, policyWithHostHeader)
-				} else {
-					needWildCardRoute = true
-				}
-			}
-			if needWildCardRoute {
-				if err := policy.AddRoute(trafficpolicy.WildCardRouteMatch, weightedCluster); err != nil {
-					log.Error().Err(err).Msgf("Error adding Route to outbound policy for source %s(%s) and destination %s (%s)", source.Name, source.Namespace, destService.Name, destService.Namespace)
+		policy := trafficpolicy.NewOutboundTrafficPolicy(destService.FQDN(), hostnames)
+		needWildCardRoute := false
+		for _, routeMatch := range routeMatches {
+			// If the traffic target has a route with host headers
+			// we need to create a new outbound traffic policy with the host header as the required hostnames
+			// else the hosnames will be hostnames corresponding to the service
+			if _, ok := routeMatch.Headers[hostHeaderKey]; ok {
+				policyWithHostHeader := trafficpolicy.NewOutboundTrafficPolicy(routeMatch.Headers[hostHeaderKey], []string{routeMatch.Headers[hostHeaderKey]})
+				if err := policyWithHostHeader.AddRoute(trafficpolicy.WildCardRouteMatch, weightedCluster); err != nil {
+					log.Error().Err(err).Msgf("Error adding Route to outbound policy for source %s(%s) and destination %s (%s) with host header %s", source.Name, source.Namespace, destService.Name, destService.Namespace, routeMatch.Headers[hostHeaderKey])
 					continue
 				}
+				outboundPolicies = trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, outboundPolicies, policyWithHostHeader)
+			} else {
+				needWildCardRoute = true
 			}
-
-			outboundPolicies = trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, outboundPolicies, policy)
 		}
+		if needWildCardRoute {
+			if err := policy.AddRoute(trafficpolicy.WildCardRouteMatch, weightedCluster); err != nil {
+				log.Error().Err(err).Msgf("Error adding Route to outbound policy for source %s(%s) and destination %s (%s)", source.Name, source.Namespace, destService.Name, destService.Namespace)
+				continue
+			}
+		}
+
+		outboundPolicies = trafficpolicy.MergeOutboundPolicies(AllowPartialHostnamesMatch, outboundPolicies, policy)
 	}
 	return outboundPolicies
 }
@@ -264,6 +266,22 @@ func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *access.Traffic
 func (mc *MeshCatalog) GetWeightedClustersForUpstream(upstream service.MeshService) []service.WeightedCluster {
 	var weightedClusters []service.WeightedCluster
 	apexServices := mapset.NewSet()
+
+	if upstream.Global() {
+		for _, provider := range mc.serviceProviders {
+			svcs := provider.GetServicesByNameNamespace(upstream.Name, upstream.Namespace)
+			if len(svcs) == 0 {
+				log.Error().Msgf("Error retrieving remote services for %s", upstream)
+				return nil
+			}
+			for _, svc := range svcs {
+				weightedClusters = append(weightedClusters, service.WeightedCluster{
+					ClusterName: service.ClusterName(svc.String()),
+				})
+			}
+		}
+		return weightedClusters
+	}
 
 	for _, split := range mc.meshSpec.ListTrafficSplits() {
 		// Split policy must be in the same namespace as the upstream service
@@ -312,6 +330,15 @@ func (mc *MeshCatalog) ListMeshServicesForIdentity(identity identity.ServiceIden
 	dstServicesSet := make(map[service.MeshService]struct{}) // Set, avoid duplicates
 	// Transform into set, when listing apex services we might face repetitions
 	for _, upstreamSvc := range upstreamServices {
+		// ListAllowedOutboundServicesForIdentity does not return the global service, so we add it here if we detect
+		// a remote cluster.
+		if !upstreamSvc.Local() {
+			dstServicesSet[service.MeshService{
+				Name:          upstreamSvc.Name,
+				Namespace:     upstreamSvc.Namespace,
+				ClusterDomain: constants.GlobalDomain,
+			}] = struct{}{}
+		}
 		dstServicesSet[upstreamSvc] = struct{}{}
 	}
 

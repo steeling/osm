@@ -145,6 +145,7 @@ func (c Client) GetServicesForServiceAccount(svcAccount identity.K8sServiceAccou
 func (c Client) GetTargetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
 	portToProtocolMap := make(map[uint32]string)
 
+	// TODO(steeling): allow remote, but query for local...
 	endpoints, err := c.kubeController.GetEndpoints(svc)
 	if err != nil || endpoints == nil {
 		log.Error().Err(err).Msgf("[%s] Error fetching Kubernetes Endpoints from cache", c.providerIdent)
@@ -323,4 +324,33 @@ func (c *Client) GetServicesByLabels(podLabels map[string]string, namespace stri
 	}
 
 	return finalList, nil
+}
+
+// GetServicesByNameNamespace returns the list of mesh services with the given name in the given namespace across
+// all clusters.
+func (c Client) GetServicesByNameNamespace(name, namespace string) []service.MeshService {
+	var services []service.MeshService
+
+	localSvc := service.MeshService{
+		Name:          name,
+		Namespace:     namespace,
+		ClusterDomain: constants.LocalDomain,
+	}
+	// Append localSvc if it exists
+	if exists := c.kubeController.GetService(localSvc); exists != nil {
+		services = append(services, localSvc)
+	}
+
+	mcs := c.configClient.GetMultiClusterService(name, namespace)
+	if mcs == nil {
+		return services
+	}
+
+	for _, cluster := range mcs.Spec.Cluster {
+		services = append(services, service.MeshService{
+			Name:          name,
+			Namespace:     namespace,
+			ClusterDomain: constants.ClusterDomain(cluster.Name)})
+	}
+	return services
 }
