@@ -114,6 +114,7 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
 	ident := serviceIdentity.ToK8sServiceAccount()
 	if mc.isOSMGateway(serviceIdentity) {
+		log.Debug().Msg("querying outbound services out for the multicluster gateway")
 		var services []service.MeshService
 		for _, svc := range mc.listMeshServices() {
 			// The gateway can only forward to local services.
@@ -121,8 +122,10 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity id
 				services = append(services, svc)
 			}
 		}
+		log.Debug().Msgf("returning %d outbound services out for the multicluster gateway", len(services))
 		return services
 	}
+	log.Debug().Msgf("building services for a regular proxy %s", serviceIdentity)
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		return mc.listMeshServices()
 	}
@@ -142,6 +145,7 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(serviceIdentity id
 					break
 				}
 				for _, destService := range destServices {
+					log.Debug().Msgf("adding traffic target based service %s for identity %s", destService, serviceIdentity)
 					serviceSet.Add(destService)
 				}
 				break
@@ -320,6 +324,7 @@ func (mc *MeshCatalog) ListMeshServicesForIdentity(identity identity.ServiceIden
 	dstServicesSet := make(map[service.MeshService]struct{}) // Set, avoid duplicates
 	// Transform into set, when listing apex services we might face repetitions
 	for _, upstreamSvc := range upstreamServices {
+		log.Debug().Msgf("adding upstream service %s to identity %s", upstreamSvc, identity)
 		dstServicesSet[upstreamSvc] = struct{}{}
 	}
 
