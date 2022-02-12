@@ -4,6 +4,8 @@ package certificate
 
 import (
 	"time"
+
+	"github.com/openservicemesh/osm/pkg/debugger"
 )
 
 const (
@@ -56,6 +58,9 @@ type Certificater interface {
 
 // Manager is the interface declaring the methods for the Certificate Manager.
 type Manager interface {
+	// Manager's also need to implement the debugger interface
+	debugger.CertificateManagerDebugger
+
 	// IssueCertificate issues a new certificate.
 	IssueCertificate(CommonName, time.Duration) (Certificater, error)
 
@@ -74,7 +79,4 @@ type Manager interface {
 	// ReleaseCertificate informs the underlying certificate issuer that the given cert will no longer be needed.
 	// This method could be called when a given payload is terminated. Calling this should remove certs from cache and free memory if possible.
 	ReleaseCertificate(CommonName)
-
-	// ListIssuedCertificates returns the current list of certificates in OSM's cache. Used for debugging.
-	ListIssuedCertificates() []Certificater
 }

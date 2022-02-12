@@ -123,7 +123,12 @@ func init() {
 	_ = admissionv1.AddToScheme(scheme)
 }
 
-func getCertOptions() providers.Options {
+func getCertOptions() (opts providers.Options) {
+	defer func() {
+		if err := opts.Validate(); err != nil {
+			log.Fatal().Err(err).Msg("Invalid certificate manager options")
+		}
+	}()
 	switch certProviderKind {
 	case providers.TresorKind.String():
 		return tresorOptions
@@ -193,7 +198,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating MeshSpec")
 	}
 
-	certManager, _, err := providers.NewCertificateProvider(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
+	certManager, err := providers.NewCertificateProvider(kubeClient, kubeConfig, osmNamespace,
 		caBundleSecretName, msgBroker, getCertOptions())
 
 	if err != nil {
@@ -288,7 +293,7 @@ func main() {
 
 	// Create DebugServer and start its config event listener.
 	// Listener takes care to start and stop the debug server as appropriate
-	debugConfig := debugger.NewDebugConfig(certDebugger, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, cfg, k8sClient, msgBroker)
+	debugConfig := debugger.NewDebugConfig(certManager, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, cfg, k8sClient, msgBroker)
 	go debugConfig.StartDebugServerConfigListener(stop)
 
 	// Start the k8s pod watcher that updates corresponding k8s secrets

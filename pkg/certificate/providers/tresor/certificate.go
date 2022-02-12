@@ -37,7 +37,7 @@ func (c Certificate) GetSerialNumber() certificate.SerialNumber {
 }
 
 // NewCertManager creates a new CertManager with the passed CA and CA Private Key
-func NewCertManager(options Options) (*CertManager, error) {
+func NewCertManager(options Options) *CertManager {
 	//TODO(steeling): Make sure the options are validated.
 	return &CertManager{
 		// The root certificate signing all newly issued certificates
@@ -46,5 +46,5 @@ func NewCertManager(options Options) (*CertManager, error) {
 		serviceCertValidityDuration: options.ServiceCertValidityDuration,
 		keySize:                     options.KeySize,
 		msgBroker:                   options.MsgBroker,
-	}, nil
+	}
 }
