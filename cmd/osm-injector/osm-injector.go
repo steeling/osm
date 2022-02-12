@@ -26,6 +26,9 @@ import (
 	"github.com/openservicemesh/osm/pkg/reconciler"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
+	"github.com/openservicemesh/osm/pkg/certificate/providers/certmanager"
+	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	"github.com/openservicemesh/osm/pkg/certificate/providers/vault"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -57,9 +60,9 @@ var (
 
 	enableReconciler bool
 
-	tresorOptions      providers.TresorOptions
-	vaultOptions       providers.VaultOptions
-	certManagerOptions providers.CertManagerOptions
+	tresorOptions      tresor.Options
+	vaultOptions       vault.Options
+	certManagerOptions certmanager.Options
 
 	initContainerPullPolicy string
 
@@ -107,6 +110,25 @@ func init() {
 
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = admissionv1.AddToScheme(scheme)
+}
+
+func getCertOptions() (opts providers.Options) {
+	defer func() {
+		if err := opts.Validate(); err != nil {
+			log.Fatal().Err(err).Msg("Invalid certificate manager options")
+		}
+	}()
+	switch certProviderKind {
+	case providers.TresorKind.String():
+		return tresorOptions
+	case providers.VaultKind.String():
+		return vaultOptions
+	case providers.CertManagerKind.String():
+		return certManagerOptions
+	default:
+		log.Fatal().Msgf("Invalid certificate provider kind: %v", certProviderKind)
+	}
+	return nil
 }
 
 func main() {
@@ -166,10 +188,8 @@ func main() {
 	}
 
 	// Intitialize certificate manager/provider
-	certProviderConfig := providers.NewCertificateProviderConfig(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
-		caBundleSecretName, tresorOptions, vaultOptions, certManagerOptions, msgBroker)
-
-	certManager, _, err := certProviderConfig.GetCertificateManager()
+	certManager, err := providers.NewCertificateProvider(kubeClient, kubeConfig, osmNamespace,
+		caBundleSecretName, msgBroker, getCertOptions())
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 			"Error initializing certificate manager of kind %s", certProviderKind)
