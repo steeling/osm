@@ -27,7 +27,7 @@ type CertManager struct {
 	// The Vault role configured for OSM and passed as a CLI.
 	role vaultRole
 
-	cfg configurator.Configurator
+	cfg configurator.Configurator // remove this
 
 	serviceCertValidityDuration time.Duration
 

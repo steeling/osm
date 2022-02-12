@@ -4,13 +4,6 @@ import (
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/rotor"
-	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/messaging"
-)
-
-const (
-	checkCertificateExpirationInterval = 5 * time.Second
 )
 
 // GetCommonName implements certificate.Certificater and returns the CN of the cert.
@@ -44,29 +37,14 @@ func (c Certificate) GetSerialNumber() certificate.SerialNumber {
 }
 
 // NewCertManager creates a new CertManager with the passed CA and CA Private Key
-func NewCertManager(
-	ca certificate.Certificater,
-	certificatesOrganization string,
-	cfg configurator.Configurator,
-	serviceCertValidityDuration time.Duration,
-	keySize int,
-	msgBroker *messaging.Broker) (*CertManager, error) {
-	if ca == nil {
-		return nil, errNoIssuingCA
-	}
-
-	certManager := CertManager{
+func NewCertManager(options Options) (*CertManager, error) {
+	//TODO(steeling): Make sure the options are validated.
+	return &CertManager{
 		// The root certificate signing all newly issued certificates
-		ca:                          ca,
-		certificatesOrganization:    certificatesOrganization,
-		cfg:                         cfg,
-		serviceCertValidityDuration: serviceCertValidityDuration,
-		keySize:                     keySize,
-		msgBroker:                   msgBroker,
-	}
-
-	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.
-	rotor.New(&certManager).Start(checkCertificateExpirationInterval)
-
-	return &certManager, nil
+		ca:                          options.ca,
+		certificatesOrganization:    options.certificatesOrganization,
+		serviceCertValidityDuration: options.ServiceCertValidityDuration,
+		keySize:                     options.KeySize,
+		msgBroker:                   options.MsgBroker,
+	}, nil
 }

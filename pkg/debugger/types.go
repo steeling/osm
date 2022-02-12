@@ -35,12 +35,6 @@ type DebugConfig struct {
 	msgBroker           *messaging.Broker
 }
 
-// CertificateManagerDebugger is an interface with methods for debugging certificate issuance.
-type CertificateManagerDebugger interface {
-	// ListIssuedCertificates returns the current list of certificates in OSM's cache.
-	ListIssuedCertificates() []certificate.Certificater
-}
-
 // MeshCatalogDebugger is an interface with methods for debugging Mesh Catalog.
 type MeshCatalogDebugger interface {
 	// ListSMIPolicies lists the SMI policies detected by OSM.

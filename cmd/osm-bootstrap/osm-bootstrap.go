@@ -170,11 +170,11 @@ func main() {
 	// Initialize Configurator to retrieve mesh specific config
 	cfg := configurator.NewConfigurator(configClient, stop, osmNamespace, osmMeshConfigName, msgBroker)
 
-	// Intitialize certificate manager/provider
-	certProviderConfig := providers.NewCertificateProviderConfig(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
-		caBundleSecretName, tresorOptions, vaultOptions, certManagerOptions, msgBroker)
+	// // Intitialize certificate manager/provider
+	// certProviderConfig := providers.NewCertificateProviderConfig(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
+	// 	caBundleSecretName, tresorOptions, vaultOptions, certManagerOptions, msgBroker)
 
-	certManager, _, err := certProviderConfig.GetCertificateManager()
+	certManager, _, err := providers.NewCertificateProvider(
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 			"Error initializing certificate manager of kind %s", certProviderKind)

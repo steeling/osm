@@ -74,4 +74,7 @@ type Manager interface {
 	// ReleaseCertificate informs the underlying certificate issuer that the given cert will no longer be needed.
 	// This method could be called when a given payload is terminated. Calling this should remove certs from cache and free memory if possible.
 	ReleaseCertificate(CommonName)
+
+	// ListIssuedCertificates returns the current list of certificates in OSM's cache. Used for debugging.
+	ListIssuedCertificates() []Certificater
 }

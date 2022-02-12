@@ -10,18 +10,14 @@ import (
 	"time"
 
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
-	cmversionedclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 	cminformers "github.com/jetstack/cert-manager/pkg/client/informers/externalversions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
-	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 // IssueCertificate implements certificate.Manager and returns a newly issued certificate.
@@ -83,13 +79,6 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
 	start := time.Now()
 
-	// We want the validity duration of the CertManager to remain static during the lifetime
-	// of the CertManager. This tests to see if this value is set, and if it isn't then it
-	// should make the infrequent call to configuration to get this value and cache it for
-	// future certificate operations.
-	if cm.serviceCertValidityDuration == 0 {
-		cm.serviceCertValidityDuration = cm.cfg.GetServiceCertValidityPeriod()
-	}
 	newCert, err := cm.issue(cn, cm.serviceCertValidityDuration)
 	if err != nil {
 		return newCert, err
@@ -160,7 +149,7 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 	// is a zero value, we make the call to config to get the setting and then cache it for future
 	// certificate operations.
 	if cm.keySize == 0 {
-		cm.keySize = cm.cfg.GetCertKeyBitSize()
+		cm.keySize = cm.keySize
 	}
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, cm.keySize)
 	if err != nil {
@@ -251,36 +240,24 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 
 // NewCertManager will construct a new certificate.Certificater implemented
 // using Jetstack's cert-manager,
-func NewCertManager(
-	ca certificate.Certificater,
-	client cmversionedclient.Interface,
-	namespace string,
-	issuerRef cmmeta.ObjectReference,
-	cfg configurator.Configurator,
-	serviceCertValidityDuration time.Duration,
-	keySize int,
-	msgBroker *messaging.Broker) (*CertManager, error) {
-	informerFactory := cminformers.NewSharedInformerFactory(client, time.Second*30)
-	crLister := informerFactory.Certmanager().V1().CertificateRequests().Lister().CertificateRequests(namespace)
+func NewCertManager(opts Options) (*CertManager, error) {
+	informerFactory := cminformers.NewSharedInformerFactory(opts.client, time.Second*30)
+	crLister := informerFactory.Certmanager().V1().CertificateRequests().Lister().CertificateRequests(opts.namespace)
 
 	// TODO: pass through graceful shutdown
 	informerFactory.Start(make(chan struct{}))
 
 	cm := &CertManager{
-		ca:                          ca,
+		ca:                          opts.ca,
 		cache:                       make(map[certificate.CommonName]certificate.Certificater),
-		namespace:                   namespace,
-		client:                      client.CertmanagerV1().CertificateRequests(namespace),
-		issuerRef:                   issuerRef,
+		namespace:                   opts.namespace,
+		client:                      opts.client.CertmanagerV1().CertificateRequests(opts.namespace),
+		issuerRef:                   opts.issuerRef,
 		crLister:                    crLister,
-		cfg:                         cfg,
-		serviceCertValidityDuration: serviceCertValidityDuration,
-		keySize:                     keySize,
-		msgBroker:                   msgBroker,
+		serviceCertValidityDuration: opts.ServiceCertValidityDuration,
+		keySize:                     opts.KeySize,
+		msgBroker:                   opts.MsgBroker,
 	}
-
-	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.
-	rotor.New(cm).Start(checkCertificateExpirationInterval)
 
 	return cm, nil
 }

@@ -31,6 +31,9 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
+	"github.com/openservicemesh/osm/pkg/certificate/providers/certmanager"
+	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	"github.com/openservicemesh/osm/pkg/certificate/providers/vault"
 	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -72,9 +75,9 @@ var (
 
 	certProviderKind string
 
-	tresorOptions      providers.TresorOptions
-	vaultOptions       providers.VaultOptions
-	certManagerOptions providers.CertManagerOptions
+	tresorOptions      tresor.Options
+	vaultOptions       vault.Options
+	certManagerOptions certmanager.Options
 
 	enableReconciler      bool
 	validateTrafficTarget bool
@@ -118,6 +121,20 @@ func init() {
 
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = admissionv1.AddToScheme(scheme)
+}
+
+func getCertOptions() providers.Options {
+	switch certProviderKind {
+	case providers.TresorKind.String():
+		return tresorOptions
+	case providers.VaultKind.String():
+		return vaultOptions
+	case providers.CertManagerKind.String():
+		return certManagerOptions
+	default:
+		log.Fatal().Msgf("Invalid certificate provider kind: %v", certProviderKind)
+	}
+	return nil
 }
 
 func main() {
@@ -176,8 +193,8 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating MeshSpec")
 	}
 
-	certManager, certDebugger, _, err := providers.NewCertificateProvider(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
-		caBundleSecretName, tresorOptions, vaultOptions, certManagerOptions, msgBroker)
+	certManager, _, err := providers.NewCertificateProvider(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
+		caBundleSecretName, msgBroker, getCertOptions())
 
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,

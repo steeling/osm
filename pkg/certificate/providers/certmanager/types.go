@@ -11,15 +11,8 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
-)
-
-const (
-	// checkCertificateExpirationInterval is the interval to check whether a
-	// certificate is close to expiration and needs renewal.
-	checkCertificateExpirationInterval = 5 * time.Second
 )
 
 var (
@@ -49,11 +42,9 @@ type CertManager struct {
 	// crLister is used to list CertificateRequests in the given namespace.
 	crLister cmlisters.CertificateRequestNamespaceLister
 
-	cfg configurator.Configurator
-
+	keySize int
 	// Issuing certificate properties.
 	serviceCertValidityDuration time.Duration
-	keySize                     int
 
 	msgBroker *messaging.Broker
 }

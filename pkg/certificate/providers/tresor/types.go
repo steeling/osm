@@ -37,7 +37,7 @@ type CertManager struct {
 
 	certificatesOrganization string
 
-	cfg configurator.Configurator
+	cfg configurator.Configurator //TODO: remove this
 
 	serviceCertValidityDuration time.Duration
 	keySize                     int

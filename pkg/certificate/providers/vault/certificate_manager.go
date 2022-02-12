@@ -10,12 +10,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 var log = logger.New("vault")
@@ -30,35 +28,27 @@ const (
 	commonNameField   = "common_name"
 	ttlField          = "ttl"
 
-	checkCertificateExpirationInterval = 5 * time.Second
-	decade                             = 8765 * time.Hour
+	decade = 8765 * time.Hour
 )
 
 // NewCertManager implements certificate.Manager and wraps a Hashi Vault with methods to allow easy certificate issuance.
-func NewCertManager(
-	vaultAddr,
-	token string,
-	role string,
-	cfg configurator.Configurator,
-	serviceCertValidityDuration time.Duration,
-	msgBroker *messaging.Broker) (*CertManager, error) {
+func NewCertManager(opts Options) (*CertManager, error) {
 	c := &CertManager{
-		role:                        vaultRole(role),
-		cfg:                         cfg,
-		serviceCertValidityDuration: serviceCertValidityDuration,
-		msgBroker:                   msgBroker,
+		role:                        vaultRole(opts.VaultRole),
+		serviceCertValidityDuration: opts.ServiceCertValidityDuration,
+		msgBroker:                   opts.MsgBroker,
 	}
 	config := api.DefaultConfig()
-	config.Address = vaultAddr
+	config.Address = opts.Address()
 
 	var err error
 	if c.client, err = api.NewClient(config); err != nil {
-		return nil, errors.Errorf("Error creating Vault CertManager without TLS at %s", vaultAddr)
+		return nil, errors.Errorf("Error creating Vault CertManager without TLS at %s", config.Address)
 	}
 
-	log.Info().Msgf("Created Vault CertManager, with role=%q at %v", role, vaultAddr)
+	log.Info().Msgf("Created Vault CertManager, with role=%q at %v", c.role, config.Address)
 
-	c.client.SetToken(token)
+	c.client.SetToken(opts.VaultToken)
 
 	issuingCA, serialNumber, err := c.getIssuingCA(c.issue)
 	if err != nil {
@@ -72,9 +62,6 @@ func NewCertManager(
 		certChain:    issuingCA,
 		issuingCA:    issuingCA,
 	}
-
-	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.
-	rotor.New(c).Start(checkCertificateExpirationInterval)
 
 	return c, nil
 }
@@ -181,13 +168,6 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 		return nil, errors.Errorf("Old certificate does not exist for CN=%s", cn)
 	}
 
-	// We want the validity duration of the CertManager to remain static during the lifetime
-	// of the CertManager. This tests to see if this value is set, and if it isn't then it
-	// should make the infrequent call to configuration to get this value and cache it for
-	// future certificate operations.
-	if cm.serviceCertValidityDuration == 0 {
-		cm.serviceCertValidityDuration = cm.cfg.GetServiceCertValidityPeriod()
-	}
 	newCert, err := cm.issue(cn, cm.serviceCertValidityDuration)
 	if err != nil {
 		return nil, err
