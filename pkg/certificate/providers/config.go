@@ -36,20 +36,6 @@ const (
 // NewCertificateProvider returns a new certificate provider and associated config
 func NewCertificateProvider(kubeClient kubernetes.Interface, kubeConfig *rest.Config,
 	providerNamespace string, caBundleSecretName string, msgBroker *messaging.Broker, options Options) (cm certificate.Manager, err error) {
-	// config := &Config{
-	// 	kubeClient:         kubeClient,
-	// 	kubeConfig:         kubeConfig,
-	// 	cfg:                cfg,
-	// 	providerKind:       providerKind,
-	// 	providerNamespace:  providerNamespace,
-	// 	caBundleSecretName: caBundleSecretName,
-
-	// 	tresorOptions:      tresorOptions,
-	// 	vaultOptions:       vaultOptions,
-	// 	certManagerOptions: certManagerOptions,
-
-	// 	msgBroker: msgBroker,
-	// }
 	defer func() {
 		if cm != nil {
 			// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.
@@ -123,17 +109,8 @@ func getTresorOSMCertificateManager(opts tresor.Options) (certificate.Manager, e
 	// Regardless of success or failure, all instances can proceed to load the same CA.
 
 	rootCert, err = tresor.NewCA(constants.CertificationAuthorityCommonName, constants.CertificationAuthorityRootValidityPeriod, rootCertCountry, rootCertLocality, rootCertOrganization)
-
 	if err != nil {
 		return nil, errors.Errorf("Failed to create new Certificate Authority with cert issuer tresor")
-	}
-
-	if rootCert == nil {
-		return nil, errors.Errorf("Invalid root certificate created by cert issuer tresor")
-	}
-
-	if rootCert.GetPrivateKey() == nil {
-		return nil, errors.Errorf("Root cert does not have a private key")
 	}
 
 	rootCert, err = GetOrCreateCertificateFromSecret(opts.providerNamespace, c.caBundleSecretName, rootCert, c.kubeClient)
