@@ -83,7 +83,7 @@ var _ = Describe("Test Rotor", func() {
 
 			newCert, err := certManager.IssueCertificate(cn, validityPeriod)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(newCert.GetExpiration()).ToNot(Equal(certA.GetExpiration()))
+			Expect(newCert.Expiration).ToNot(Equal(certA.Expiration))
 			Expect(newCert).ToNot(Equal(certA))
 		})
 	})

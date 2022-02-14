@@ -15,20 +15,20 @@ func (ds DebugConfig) getCertHandler() http.Handler {
 		certs := ds.certDebugger.ListIssuedCertificates()
 
 		sort.Slice(certs, func(i, j int) bool {
-			return certs[i].GetCommonName() < certs[j].GetCommonName()
+			return certs[i].CommonName < certs[j].CommonName
 		})
 
 		for idx, cert := range certs {
-			ca := cert.GetIssuingCA()
-			chain := cert.GetCertificateChain()
+			ca := cert.IssuingCA
+			chain := cert.CertChain
 			x509, err := certificate.DecodePEMCertificate(chain)
 			if err != nil {
-				log.Error().Err(err).Msgf("Error decoding PEM to x509 SerialNumber=%s", cert.GetSerialNumber())
+				log.Error().Err(err).Msgf("Error decoding PEM to x509 SerialNumber=%s", cert.SerialNumber)
 			}
 
 			_, _ = fmt.Fprintf(w, "---[ %d ]---\n", idx)
-			_, _ = fmt.Fprintf(w, "\t Common Name: %q\n", cert.GetCommonName())
-			_, _ = fmt.Fprintf(w, "\t Valid Until: %+v (%+v remaining)\n", cert.GetExpiration(), time.Until(cert.GetExpiration()))
+			_, _ = fmt.Fprintf(w, "\t Common Name: %q\n", cert.CommonName)
+			_, _ = fmt.Fprintf(w, "\t Valid Until: %+v (%+v remaining)\n", cert.Expiration, time.Until(cert.Expiration))
 			_, _ = fmt.Fprintf(w, "\t Issuing CA (SHA256): %x\n", sha256.Sum256(ca))
 			_, _ = fmt.Fprintf(w, "\t Cert Chain (SHA256): %x\n", sha256.Sum256(chain))
 
@@ -45,7 +45,7 @@ func (ds DebugConfig) getCertHandler() http.Handler {
 			_, _ = fmt.Fprintf(w, "\t x509.IsCA: %+v\n", x509.IsCA)
 			_, _ = fmt.Fprintf(w, "\t x509.DNSNames: %+v\n", x509.DNSNames)
 
-			_, _ = fmt.Fprintf(w, "\t Cert struct expiration vs. x509.NotAfter: %+v\n", x509.NotAfter.Sub(cert.GetExpiration()))
+			_, _ = fmt.Fprintf(w, "\t Cert struct expiration vs. x509.NotAfter: %+v\n", x509.NotAfter.Sub(cert.Expiration))
 
 			_, _ = fmt.Fprint(w, "\n")
 		}

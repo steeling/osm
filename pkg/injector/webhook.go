@@ -110,7 +110,7 @@ func (wh *mutatingWebhook) run(stop <-chan struct{}) {
 	log.Info().Msgf("Starting sidecar-injection webhook server on port: %v", wh.config.ListenPort)
 	go func() {
 		// Generate a key pair from your pem-encoded cert and key ([]byte).
-		cert, err := tls.X509KeyPair(wh.cert.GetCertificateChain(), wh.cert.GetPrivateKey())
+		cert, err := tls.X509KeyPair(wh.cert.CertChain, wh.cert.PrivateKey)
 		if err != nil {
 			// TODO(#3962): metric might not be scraped before process restart resulting from this error
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrParsingMutatingWebhookCert)).
@@ -354,7 +354,7 @@ func patchAdmissionResponse(resp *admissionv1.AdmissionResponse, patchBytes []by
 	resp.PatchType = &pt
 }
 
-func createOrUpdateMutatingWebhook(clientSet kubernetes.Interface, cert certificate.Certificater, webhookTimeout int32, webhookName, meshName, osmNamespace, osmVersion string, enableReconciler bool) error {
+func createOrUpdateMutatingWebhook(clientSet kubernetes.Interface, cert *certificate.Certificate, webhookTimeout int32, webhookName, meshName, osmNamespace, osmVersion string, enableReconciler bool) error {
 	webhookPath := webhookCreatePod
 	webhookPort := int32(constants.InjectorWebhookPort)
 	failurePolicy := admissionregv1.Fail
@@ -386,7 +386,7 @@ func createOrUpdateMutatingWebhook(clientSet kubernetes.Interface, cert certific
 						Path:      &webhookPath,
 						Port:      &webhookPort,
 					},
-					CABundle: cert.GetCertificateChain()},
+					CABundle: cert.CertChain},
 				FailurePolicy: &failurePolicy,
 				MatchPolicy:   &matchPolicy,
 				NamespaceSelector: &metav1.LabelSelector{

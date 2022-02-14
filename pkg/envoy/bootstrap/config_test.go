@@ -15,12 +15,12 @@ func TestBuildFromConfig(t *testing.T) {
 	cert := tresor.NewFakeCertificate()
 
 	config := Config{
-		NodeID:           cert.GetCommonName().String(),
+		NodeID:           cert.CommonName.String(),
 		AdminPort:        15000,
 		XDSClusterName:   constants.OSMControllerName,
-		TrustedCA:        cert.GetIssuingCA(),
-		CertificateChain: cert.GetCertificateChain(),
-		PrivateKey:       cert.GetPrivateKey(),
+		TrustedCA:        cert.IssuingCA,
+		CertificateChain: cert.CertChain,
+		PrivateKey:       cert.PrivateKey,
 		XDSHost:          "osm-controller.osm-system.svc.cluster.local",
 		XDSPort:          15128,
 	}

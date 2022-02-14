@@ -128,7 +128,7 @@ var _ = Describe("Test ADS response functions", func() {
 		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.cluster.local", proxySvcAccount.Name, proxySvcAccount.Namespace))
 		certDuration := 1 * time.Hour
 		certPEM, _ := certManager.IssueCertificate(certCommonName, certDuration)
-		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
+		cert, _ := certificate.DecodePEMCertificate(certPEM.CertChain)
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
 		kubectrlMock := k8s.NewMockController(mockCtrl)
 
@@ -207,7 +207,7 @@ var _ = Describe("Test ADS response functions", func() {
 		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace))
 		certDuration := 1 * time.Hour
 		certPEM, _ := certManager.IssueCertificate(certCommonName, certDuration)
-		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
+		cert, _ := certificate.DecodePEMCertificate(certPEM.CertChain)
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
 		kubectrlMock := k8s.NewMockController(mockCtrl)
 
