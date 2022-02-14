@@ -75,11 +75,11 @@ func (c *client) createAndStoreGatewayCert(spec configv1alpha2.IngressGatewayCer
 }
 
 // storeCertInSecret stores the certificate in the specified k8s TLS secret
-func (c *client) storeCertInSecret(cert certificate.Certificater, secret corev1.SecretReference) error {
+func (c *client) storeCertInSecret(cert *certificate.Certificate, secret corev1.SecretReference) error {
 	secretData := map[string][]byte{
-		"ca.crt":  cert.GetIssuingCA(),
-		"tls.crt": cert.GetCertificateChain(),
-		"tls.key": cert.GetPrivateKey(),
+		"ca.crt":  cert.IssuingCA,
+		"tls.crt": cert.CertChain,
+		"tls.key": cert.PrivateKey,
 	}
 
 	sec := &corev1.Secret{
@@ -160,9 +160,9 @@ func (c *client) handleCertificateChange(currentCertSpec *configv1alpha2.Ingress
 				log.Error().Msgf("Received unexpected message %T on channel, expected PubSubMessage", event)
 				continue
 			}
-			cert, ok := event.NewObj.(certificate.Certificater)
+			cert, ok := event.NewObj.(*certificate.Certificate)
 			if !ok {
-				log.Error().Msgf("Received unexpected message %T on cert rotation channel, expected Certificater", cert)
+				log.Error().Msgf("Received unexpected message %T on cert rotation channel, expected Certificate", cert)
 				continue
 			}
 
@@ -175,7 +175,7 @@ func (c *client) handleCertificateChange(currentCertSpec *configv1alpha2.Ingress
 			cnInCertSpec := currentCertSpec.SubjectAltNames[0] // Only single SAN is supported in certs
 
 			// Only update the secret if the cert rotated matches the cert spec
-			if cert.GetCommonName() != certificate.CommonName(cnInCertSpec) {
+			if cert.CommonName != certificate.CommonName(cnInCertSpec) {
 				continue
 			}
 

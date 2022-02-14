@@ -109,7 +109,7 @@ func (crdWh *crdConversionWebhook) run(stop <-chan struct{}) {
 	log.Info().Msgf("Starting conversion webhook server on port: %v", crdWh.config.ListenPort)
 	go func() {
 		// Generate a key pair from your pem-encoded cert and key ([]byte).
-		cert, err := tls.X509KeyPair(crdWh.cert.GetCertificateChain(), crdWh.cert.GetPrivateKey())
+		cert, err := tls.X509KeyPair(crdWh.cert.CertChain, crdWh.cert.PrivateKey)
 		if err != nil {
 			log.Error().Err(err).Msg("Error parsing crd-converter webhook certificate")
 			return
@@ -166,7 +166,7 @@ func healthHandler(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-func patchCrds(cert certificate.Certificater, crdClient apiclient.ApiextensionsV1Interface, osmNamespace string, enableReconciler bool) error {
+func patchCrds(cert *certificate.Certificate, crdClient apiclient.ApiextensionsV1Interface, osmNamespace string, enableReconciler bool) error {
 	for crdName, crdConversionPath := range crdConversionWebhookConfiguration {
 		if err := updateCrdConfiguration(cert, crdClient, osmNamespace, crdName, crdConversionPath, enableReconciler); err != nil {
 			log.Error().Err(err).Msgf("Error updating conversion webhook configuration for crd : %s", crdName)
@@ -177,7 +177,7 @@ func patchCrds(cert certificate.Certificater, crdClient apiclient.ApiextensionsV
 }
 
 // updateCrdConfiguration updates the Conversion section of the CRD and adds a reconcile label if OSM's reconciler is enabled.
-func updateCrdConfiguration(cert certificate.Certificater, crdClient apiclient.ApiextensionsV1Interface, osmNamespace, crdName, crdConversionPath string, enableReconciler bool) error {
+func updateCrdConfiguration(cert *certificate.Certificate, crdClient apiclient.ApiextensionsV1Interface, osmNamespace, crdName, crdConversionPath string, enableReconciler bool) error {
 	crd, err := crdClient.CustomResourceDefinitions().Get(context.Background(), crdName, metav1.GetOptions{})
 	if err != nil {
 		return err
@@ -193,7 +193,7 @@ func updateCrdConfiguration(cert certificate.Certificater, crdClient apiclient.A
 					Port:      pointer.Int32(constants.CRDConversionWebhookPort),
 					Path:      &crdConversionPath,
 				},
-				CABundle: cert.GetCertificateChain(),
+				CABundle: cert.CertChain,
 			},
 			ConversionReviewVersions: conversionReviewVersions,
 		},

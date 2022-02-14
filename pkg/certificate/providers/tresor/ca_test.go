@@ -23,7 +23,7 @@ func TestNewCA(t *testing.T) {
 	cert, err := NewCA("Tresor CA for Testing", 2*time.Second, rootCertCountry, rootCertLocality, rootCertOrganization)
 	assert.Nil(err)
 
-	x509Cert, err := certificate.DecodePEMCertificate(cert.GetCertificateChain())
+	x509Cert, err := certificate.DecodePEMCertificate(cert.CertChain)
 	assert.Nil(err)
 
 	assert.Equal(2*time.Second, x509Cert.NotAfter.Sub(x509Cert.NotBefore))
@@ -105,10 +105,10 @@ func TestNewCertificateFromPEM(t *testing.T) {
 			assert.Equal(test.expectedErr, err != nil)
 
 			if !test.expectedErr {
-				assert.Equal(test.expectedCN, c.GetCommonName())
-				assert.Equal(test.expectedExpiration, c.GetExpiration())
+				assert.Equal(test.expectedCN, c.CommonName)
+				assert.Equal(test.expectedExpiration, c.Expiration)
 
-				x509Cert, err := certificate.DecodePEMCertificate(c.GetCertificateChain())
+				x509Cert, err := certificate.DecodePEMCertificate(c.CertChain)
 				assert.Nil(err)
 				assert.Equal(test.expectedExpiration, x509Cert.NotAfter)
 				assert.Equal(test.expectedBeforeAfterDif, x509Cert.NotAfter.Sub(x509Cert.NotBefore))

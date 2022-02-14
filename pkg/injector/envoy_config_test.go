@@ -106,10 +106,10 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 	}
 
 	config := envoyBootstrapConfigMeta{
-		NodeID:   cert.GetCommonName().String(),
-		RootCert: cert.GetIssuingCA(),
-		Cert:     cert.GetCertificateChain(),
-		Key:      cert.GetPrivateKey(),
+		NodeID:   cert.CommonName.String(),
+		RootCert: cert.IssuingCA,
+		Cert:     cert.CertChain,
+		Key:      cert.PrivateKey,
 
 		EnvoyAdminPort: 15000,
 

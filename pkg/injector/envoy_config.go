@@ -95,15 +95,15 @@ func getProbeResources(config envoyBootstrapConfigMeta) ([]*xds_listener.Listene
 	return listeners, clusters, nil
 }
 
-func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string, cert certificate.Certificater, originalHealthProbes healthProbes) (*corev1.Secret, error) {
+func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string, cert *certificate.Certificate, originalHealthProbes healthProbes) (*corev1.Secret, error) {
 	configMeta := envoyBootstrapConfigMeta{
 		EnvoyAdminPort: constants.EnvoyAdminPort,
 		XDSClusterName: constants.OSMControllerName,
-		NodeID:         cert.GetCommonName().String(),
+		NodeID:         cert.CommonName.String(),
 
-		RootCert: cert.GetIssuingCA(),
-		Cert:     cert.GetCertificateChain(),
-		Key:      cert.GetPrivateKey(),
+		RootCert: cert.IssuingCA,
+		Cert:     cert.CertChain,
+		Key:      cert.PrivateKey,
 
 		XDSHost: fmt.Sprintf("%s.%s.svc.cluster.local", constants.OSMControllerName, osmNamespace),
 		XDSPort: constants.ADSServerPort,

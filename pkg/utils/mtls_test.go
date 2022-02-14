@@ -46,9 +46,9 @@ func TestSetupMutualTLS(t *testing.T) {
 	assert.Nil(err)
 
 	serverType := "ADS"
-	goodCertPem := adsCert.GetCertificateChain()
-	goodKeyPem := adsCert.GetPrivateKey()
-	goodCA := adsCert.GetIssuingCA()
+	goodCertPem := adsCert.CertChain
+	goodKeyPem := adsCert.PrivateKey
+	goodCA := adsCert.IssuingCA
 	var emptyByteArray []byte
 
 	setupMutualTLStests := []setupMutualTLStest{
@@ -86,7 +86,7 @@ func TestValidateClient(t *testing.T) {
 	certManager := tresor.NewFakeCertManager(mockConfigurator)
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), tests.BookstoreServiceAccountName, tests.Namespace))
 	certPEM, _ := certManager.IssueCertificate(cn, 1*time.Hour)
-	cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
+	cert, _ := certificate.DecodePEMCertificate(certPEM.CertChain)
 
 	goodCommonNameMapping := map[string]interface{}{string(cn): cn}
 	badCommonNameMapping := map[string]interface{}{"apple": "pear"}

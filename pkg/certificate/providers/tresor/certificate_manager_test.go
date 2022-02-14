@@ -57,21 +57,21 @@ var _ = Describe("Test Certificate Manager", func() {
 			Expect(newCertError).ToNot(HaveOccurred())
 			cert, issueCertificateError := m.IssueCertificate(serviceFQDN, validity)
 			Expect(issueCertificateError).ToNot(HaveOccurred())
-			Expect(cert.GetCommonName()).To(Equal(certificate.CommonName(serviceFQDN)))
+			Expect(cert.CommonName).To(Equal(certificate.CommonName(serviceFQDN)))
 
-			x509Cert, err := certificate.DecodePEMCertificate(rootCert.GetCertificateChain())
+			x509Cert, err := certificate.DecodePEMCertificate(rootCert.CertChain)
 			Expect(err).ToNot(HaveOccurred())
 
 			issuingCAPEM, err := certificate.EncodeCertDERtoPEM(x509Cert.Raw)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(cert.GetIssuingCA()).To(Equal([]byte(issuingCAPEM)))
+			Expect([]byte(cert.IssuingCA)).To(Equal([]byte(issuingCAPEM)))
 
-			pemCert := cert.GetCertificateChain()
+			pemCert := cert.CertChain
 			xCert, err := certificate.DecodePEMCertificate(pemCert)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(xCert.Subject.CommonName).To(Equal(serviceFQDN))
 
-			pemRootCert := cert.GetIssuingCA()
+			pemRootCert := cert.IssuingCA
 			xRootCert, err := certificate.DecodePEMCertificate(pemRootCert)
 			Expect(err).ToNot(HaveOccurred(), string(pemRootCert))
 			Expect(xRootCert.Subject.CommonName).To(Equal(cn.String()))
@@ -124,7 +124,7 @@ var _ = Describe("Test Certificate Manager", func() {
 			Expect(newCertError).ToNot(HaveOccurred())
 			cert, issueCertificateError := m.IssueCertificate(serviceFQDN, validity)
 			Expect(issueCertificateError).ToNot(HaveOccurred())
-			Expect(cert.GetCommonName()).To(Equal(certificate.CommonName(serviceFQDN)))
+			Expect(cert.CommonName).To(Equal(certificate.CommonName(serviceFQDN)))
 
 			cachedCert, getCertificateError := m.GetCertificate(serviceFQDN)
 			Expect(getCertificateError).ToNot(HaveOccurred())
@@ -146,9 +146,9 @@ var _ = Describe("Test Certificate Manager", func() {
 
 func TestReleaseCertificate(t *testing.T) {
 	cn := certificate.CommonName("Test CN")
-	cert := &Certificate{
-		commonName: cn,
-		expiration: time.Now().Add(1 * time.Hour),
+	cert := &certificate.Certificate{
+		CommonName: cn,
+		Expiration: time.Now().Add(1 * time.Hour),
 	}
 
 	manager := &CertManager{}
@@ -182,15 +182,15 @@ func TestReleaseCertificate(t *testing.T) {
 
 func TestGetCertificate(t *testing.T) {
 	cn := certificate.CommonName("Test Cert")
-	cert := &Certificate{
-		commonName: cn,
-		expiration: time.Now().Add(1 * time.Hour),
+	cert := &certificate.Certificate{
+		CommonName: cn,
+		Expiration: time.Now().Add(1 * time.Hour),
 	}
 
 	expiredCn := certificate.CommonName("Expired Test Cert")
-	expiredCert := &Certificate{
-		commonName: expiredCn,
-		expiration: time.Now().Add(-1 * time.Hour),
+	expiredCert := &certificate.Certificate{
+		CommonName: expiredCn,
+		Expiration: time.Now().Add(-1 * time.Hour),
 	}
 
 	manager := &CertManager{}
@@ -200,7 +200,7 @@ func TestGetCertificate(t *testing.T) {
 	testCases := []struct {
 		name                string
 		commonName          certificate.CommonName
-		expectedCertificate *Certificate
+		expectedCertificate *certificate.Certificate
 		expectedErr         error
 	}{
 		{
@@ -252,9 +252,9 @@ func TestRotateCertificate(t *testing.T) {
 
 	cn := certificate.CommonName("Test Cert")
 
-	oldCert := &Certificate{
-		commonName: cn,
-		expiration: time.Now().Add(-1 * time.Hour),
+	oldCert := &certificate.Certificate{
+		CommonName: cn,
+		Expiration: time.Now().Add(-1 * time.Hour),
 	}
 
 	mockCtrl := gomock.NewController(t)
@@ -295,8 +295,8 @@ func TestRotateCertificate(t *testing.T) {
 			}
 
 			assert.Nil(err)
-			assert.Equal(tc.commonName, newCert.GetCommonName())
-			assert.True(newCert.GetExpiration().After(oldCert.GetExpiration()))
+			assert.Equal(tc.commonName, newCert.CommonName)
+			assert.True(newCert.Expiration.After(oldCert.Expiration))
 
 			cert, err := manager.GetCertificate(tc.commonName)
 			assert.Nil(err)
@@ -309,16 +309,16 @@ func TestListCertificate(t *testing.T) {
 	assert := tassert.New(t)
 
 	cn := certificate.CommonName("Test Cert")
-	cert := &Certificate{
-		commonName: cn,
+	cert := &certificate.Certificate{
+		CommonName: cn,
 	}
 
 	anotherCn := certificate.CommonName("Another Test Cert")
-	anotherCert := &Certificate{
-		commonName: anotherCn,
+	anotherCert := &certificate.Certificate{
+		CommonName: anotherCn,
 	}
 
-	expectedCertificates := []*Certificate{cert, anotherCert}
+	expectedCertificates := []*certificate.Certificate{cert, anotherCert}
 
 	manager := &CertManager{}
 	manager.cache.Store(cn, cert)
@@ -332,7 +332,7 @@ func TestListCertificate(t *testing.T) {
 	for i, c := range cs {
 		match := false
 		for _, ec := range expectedCertificates {
-			if c.GetCommonName() == ec.GetCommonName() {
+			if c.CommonName == ec.CommonName {
 				match = true
 				assert.Equal(ec, c)
 				break
@@ -340,7 +340,7 @@ func TestListCertificate(t *testing.T) {
 		}
 
 		if !match {
-			t.Fatalf("Certificate #%v %v does not exist", i, c.GetCommonName())
+			t.Fatalf("Certificate #%v %v does not exist", i, c.CommonName)
 		}
 	}
 }

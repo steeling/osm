@@ -409,5 +409,5 @@ func secretIsForSAN(secret *corev1.Secret, san string) bool {
 		return false
 	}
 
-	return cert.GetCommonName().String() == san
+	return cert.CommonName.String() == san
 }
