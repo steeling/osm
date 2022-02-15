@@ -351,8 +351,9 @@ func ServiceToMeshServices(c Controller, svc corev1.Service) []service.MeshServi
 			Protocol:  pointer.StringDeref(portSpec.AppProtocol, constants.ProtocolHTTP),
 		}
 
-		// The endpoints for the kubernetes service carry information that allows
-		// us to retrieve the TargetPort for the MeshService.
+		// The endpoints for the kubernetes service carry information that allows us to retrieve the TargetPort for the
+		// MeshService. This is explicitly used since the TargetPort in the service could be either a port number
+		// or a named port.
 		endpoints, _ := c.GetEndpoints(meshSvc)
 		if endpoints != nil {
 			meshSvc.TargetPort = getTargetPortFromEndpoints(portSpec.Name, *endpoints)

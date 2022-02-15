@@ -28,7 +28,7 @@ var replacer = strings.NewReplacer(".", "_", ":", "_")
 
 // getUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, config trafficpolicy.MeshClusterConfig) *xds_cluster.Cluster {
+func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, config *trafficpolicy.MeshClusterConfig) *xds_cluster.Cluster {
 	HTTP2ProtocolOptions, err := envoy.GetHTTP2ProtocolOptions()
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling HTTP2ProtocolOptions for upstream cluster %s", config.Name)
@@ -54,9 +54,13 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, conf
 	}
 
 	// Configure service discovery based on traffic policies
-	remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
-	remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
-	remoteCluster.LbPolicy = xds_cluster.Cluster_ROUND_ROBIN
+	if config.Service.Headless {
+		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_ORIGINAL_DST}
+	} else {
+		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
+		remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
+		remoteCluster.LbPolicy = xds_cluster.Cluster_ROUND_ROBIN
+	}
 
 	if config.EnableEnvoyActiveHealthChecks {
 		enableHealthChecksOnCluster(remoteCluster, config.Service)
@@ -306,7 +310,7 @@ func upstreamClustersFromClusterConfigs(downstreamIdentity identity.ServiceIdent
 	var clusters []*xds_cluster.Cluster
 
 	for _, c := range configs {
-		clusters = append(clusters, getUpstreamServiceCluster(downstreamIdentity, *c))
+		clusters = append(clusters, getUpstreamServiceCluster(downstreamIdentity, c))
 	}
 	return clusters
 }

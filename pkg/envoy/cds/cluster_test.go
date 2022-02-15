@@ -51,7 +51,7 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			remoteCluster := getUpstreamServiceCluster(downstreamSvcAccount, tc.clusterConfig)
+			remoteCluster := getUpstreamServiceCluster(downstreamSvcAccount, &tc.clusterConfig)
 			assert.NotNil(remoteCluster)
 
 			if tc.clusterConfig.EnableEnvoyActiveHealthChecks {

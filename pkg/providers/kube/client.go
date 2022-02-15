@@ -4,7 +4,6 @@ import (
 	"net"
 
 	mapset "github.com/deckarep/golang-set"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/openservicemesh/osm/pkg/config"
@@ -180,11 +179,6 @@ func (c *client) GetResolvableEndpointsForService(svc service.MeshService) []end
 	if kubeService == nil {
 		log.Info().Msgf("No k8s services found for MeshService %s", svc)
 		return nil
-	}
-
-	if len(kubeService.Spec.ClusterIP) == 0 || kubeService.Spec.ClusterIP == corev1.ClusterIPNone {
-		// If service has no cluster IP or cluster IP is <none>, use final endpoint as resolvable destinations
-		return c.ListEndpointsForService(svc)
 	}
 
 	// Cluster IP is present
