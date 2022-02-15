@@ -43,6 +43,9 @@ type MeshService struct {
 
 	// Protocol is the protocol served by the service's port
 	Protocol string
+
+	// Headless is used for headless services (statefulsets). Defaults to false.
+	Headless bool
 }
 
 // String returns the string representation of the given MeshService

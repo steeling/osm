@@ -56,6 +56,8 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 		for _, source := range ingressBackendPolicy.Spec.Sources {
 			switch source.Kind {
 			case policyV1alpha1.KindService:
+				// TODO(steeling): We should support ingress for statefulsets by creating a cluster with ORIGINAL_DST.
+				// There likely wouldn't be a change here however, since it doesn't use EDS.
 				sourceMeshSvc := service.MeshService{Name: source.Name, Namespace: source.Namespace}
 				endpoints := mc.listEndpointsForService(sourceMeshSvc)
 				if len(endpoints) == 0 {

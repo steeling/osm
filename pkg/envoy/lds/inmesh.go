@@ -277,9 +277,10 @@ func (lb *listenerBuilder) getOutboundHTTPFilter(routeConfigName string) (*xds_l
 // Filter Chain currently matches on the following:
 // 1. Destination IP of service endpoints
 // 2. Destination port of the service
-func (lb *listenerBuilder) getOutboundFilterChainMatchForService(trafficMatch trafficpolicy.TrafficMatch) (*xds_listener.FilterChainMatch, error) {
+func (lb *listenerBuilder) getOutboundFilterChainMatchForService(trafficMatch *trafficpolicy.TrafficMatch) (*xds_listener.FilterChainMatch, error) {
 	filterMatch := &xds_listener.FilterChainMatch{
 		DestinationPort: &wrapperspb.UInt32Value{
+			//TODO(steeling): need to ensure the destination port is something that's available on the service/pod.
 			Value: uint32(trafficMatch.DestinationPort),
 		},
 	}
@@ -300,7 +301,7 @@ func (lb *listenerBuilder) getOutboundFilterChainMatchForService(trafficMatch tr
 	return filterMatch, nil
 }
 
-func (lb *listenerBuilder) getOutboundHTTPFilterChainForService(trafficMatch trafficpolicy.TrafficMatch) (*xds_listener.FilterChain, error) {
+func (lb *listenerBuilder) getOutboundHTTPFilterChainForService(trafficMatch *trafficpolicy.TrafficMatch) (*xds_listener.FilterChain, error) {
 	// Get HTTP filter for service
 	filter, err := lb.getOutboundHTTPFilter(route.GetOutboundMeshRouteConfigNameForPort(trafficMatch.DestinationPort))
 	if err != nil {
@@ -323,7 +324,7 @@ func (lb *listenerBuilder) getOutboundHTTPFilterChainForService(trafficMatch tra
 	}, nil
 }
 
-func (lb *listenerBuilder) getOutboundTCPFilterChainForService(trafficMatch trafficpolicy.TrafficMatch) (*xds_listener.FilterChain, error) {
+func (lb *listenerBuilder) getOutboundTCPFilterChainForService(trafficMatch *trafficpolicy.TrafficMatch) (*xds_listener.FilterChain, error) {
 	// Get TCP filter for service
 	filter, err := lb.getOutboundTCPFilter(trafficMatch)
 	if err != nil {
@@ -346,7 +347,7 @@ func (lb *listenerBuilder) getOutboundTCPFilterChainForService(trafficMatch traf
 	}, nil
 }
 
-func (lb *listenerBuilder) getOutboundTCPFilter(trafficMatch trafficpolicy.TrafficMatch) (*xds_listener.Filter, error) {
+func (lb *listenerBuilder) getOutboundTCPFilter(trafficMatch *trafficpolicy.TrafficMatch) (*xds_listener.Filter, error) {
 	tcpProxy := &xds_tcp_proxy.TcpProxy{
 		StatPrefix: fmt.Sprintf("%s_%s", outboundMeshTCPProxyStatPrefix, trafficMatch.Name),
 	}
@@ -401,7 +402,7 @@ func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.F
 		switch strings.ToLower(trafficMatch.DestinationProtocol) {
 		case constants.ProtocolHTTP, constants.ProtocolGRPC:
 			// Construct HTTP filter chain
-			if httpFilterChain, err := lb.getOutboundHTTPFilterChainForService(*trafficMatch); err != nil {
+			if httpFilterChain, err := lb.getOutboundHTTPFilterChainForService(trafficMatch); err != nil {
 				log.Error().Err(err).Msgf("Error constructing outbound HTTP filter chain for traffic match %s on proxy with identity %s", trafficMatch.Name, lb.serviceIdentity)
 			} else {
 				filterChains = append(filterChains, httpFilterChain)
@@ -409,7 +410,7 @@ func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.F
 
 		case constants.ProtocolTCP, constants.ProtocolTCPServerFirst:
 			// Construct TCP filter chain
-			if tcpFilterChain, err := lb.getOutboundTCPFilterChainForService(*trafficMatch); err != nil {
+			if tcpFilterChain, err := lb.getOutboundTCPFilterChainForService(trafficMatch); err != nil {
 				log.Error().Err(err).Msgf("Error constructing outbound TCP filter chain for traffic match %s on proxy with identity %s", trafficMatch.Name, lb.serviceIdentity)
 			} else {
 				filterChains = append(filterChains, tcpFilterChain)

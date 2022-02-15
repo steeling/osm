@@ -41,6 +41,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		// IP range must not have duplicates, use a mapset to only add unique IP ranges
 		var destinationIPRanges []string
 		destinationIPSet := mapset.NewSet()
+		// TODO(steeling): this needs to be able to get ip per endpoint for statefulset.
 		for _, endp := range mc.getDNSResolvableServiceEndpoints(meshSvc) {
 			ipCIDR := endp.IP.String() + "/32"
 			if added := destinationIPSet.Add(ipCIDR); added {
@@ -222,6 +223,7 @@ func (mc *MeshCatalog) listAllowedUpstreamServicesIncludeApex(downstreamIdentity
 						Port:       upstreamSvc.Port,
 						TargetPort: upstreamSvc.TargetPort,
 						Protocol:   upstreamSvc.Protocol,
+						Headless:   upstreamSvc.Headless,
 					}
 
 					// Add this root service into the set

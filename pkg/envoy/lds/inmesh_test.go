@@ -100,7 +100,7 @@ func TestGetOutboundHTTPFilterChainForService(t *testing.T) {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
 
-			httpFilterChain, err := lb.getOutboundHTTPFilterChainForService(tc.trafficMatch)
+			httpFilterChain, err := lb.getOutboundHTTPFilterChainForService(&tc.trafficMatch)
 
 			assert.Equal(err != nil, tc.expectError)
 
@@ -178,7 +178,7 @@ func TestGetOutboundTCPFilterChainForService(t *testing.T) {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
 
-			trafficMatch := trafficpolicy.TrafficMatch{
+			trafficMatch := &trafficpolicy.TrafficMatch{
 				Name:                "test",
 				DestinationPort:     int(tc.servicePort),
 				DestinationIPRanges: tc.destinationIPRanges,
@@ -501,7 +501,7 @@ func TestGetOutboundFilterChainMatchForService(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
-			filterChainMatch, err := lb.getOutboundFilterChainMatchForService(tc.trafficMatch)
+			filterChainMatch, err := lb.getOutboundFilterChainMatchForService(&tc.trafficMatch)
 			assert.Equal(tc.expectError, err != nil)
 			assert.Equal(tc.expectedFilterChainMatch, filterChainMatch)
 		})
@@ -579,7 +579,7 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
 			lb := newListenerBuilder(mockCatalog, tests.BookbuyerServiceIdentity, mockConfigurator, nil)
-			filter, err := lb.getOutboundTCPFilter(tc.trafficMatch)
+			filter, err := lb.getOutboundTCPFilter(&tc.trafficMatch)
 
 			assert := tassert.New(t)
 			assert.Equal(tc.expectError, err != nil)

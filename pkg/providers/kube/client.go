@@ -181,6 +181,10 @@ func (c *client) GetResolvableEndpointsForService(svc service.MeshService) []end
 		return nil
 	}
 
+	if svc.Headless {
+		return c.ListEndpointsForService(svc)
+	}
+
 	// Cluster IP is present
 	ip := net.ParseIP(kubeService.Spec.ClusterIP)
 	if ip == nil {

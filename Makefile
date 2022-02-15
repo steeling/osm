@@ -3,7 +3,7 @@
 TARGETS      := darwin/amd64 linux/amd64 windows/amd64
 BINNAME      ?= osm
 DIST_DIRS    := find * -type d -exec
-CTR_REGISTRY ?= openservicemesh
+CTR_REGISTRY ?= osmsteeling.azurecr.io
 CTR_TAG      ?= latest
 VERIFY_TAGS  ?= false
 

@@ -55,7 +55,7 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 		clusterConfigs = append(clusterConfigs, clusterConfigForSvc)
 
 		// ---
-		// Create a TrafficMatch for this upstream servic.
+		// Create a TrafficMatch for this upstream service.
 		// The TrafficMatch will be used by LDS to program a filter chain match
 		// for this upstream service on the upstream server to accept inbound
 		// traffic.
@@ -248,8 +248,9 @@ func (mc *MeshCatalog) getUpstreamServicesIncludeApex(upstreamServices []service
 				Namespace:  svc.Namespace,
 				Name:       k8s.GetServiceFromHostname(split.Spec.Service),
 				Port:       svc.Port,
-				TargetPort: svc.TargetPort,
+				TargetPort: svc.TargetPort, // TODO(steeling): if this is headless, then the target port is the port.
 				Protocol:   svc.Protocol,
+				Headless:   svc.Headless,
 			}
 			if newlyAdded := svcSet.Add(apexMeshService); newlyAdded {
 				allServices = append(allServices, apexMeshService)
