@@ -218,7 +218,6 @@ func main() {
 	meshCatalog := catalog.NewMeshCatalog(
 		k8sClient,
 		meshSpec,
-		certManager,
 		policyController,
 		stop,
 		cfg,

@@ -15,7 +15,6 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -52,8 +51,6 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	}
 
 	stop := make(chan struct{})
-
-	certManager := tresor.NewFakeCertManager(mockConfigurator)
 
 	// Create a bookstoreV1 pod
 	bookstoreV1Pod := tests.NewPodFixture(tests.BookstoreV1Service.Namespace, tests.BookstoreV1Service.Name, tests.BookstoreServiceAccountName, tests.PodLabels)
@@ -141,6 +138,6 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*specs.HTTPRouteGroup{&tests.HTTPRouteGroup}).AnyTimes()
 	mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{}).AnyTimes()
 
-	return NewMeshCatalog(mockKubeController, mockMeshSpec, certManager,
+	return NewMeshCatalog(mockKubeController, mockMeshSpec,
 		mockPolicyController, stop, mockConfigurator, serviceProviders, endpointProviders, messaging.NewBroker(stop))
 }

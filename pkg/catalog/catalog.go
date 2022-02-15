@@ -3,7 +3,6 @@ package catalog
 import (
 	"time"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -15,7 +14,7 @@ import (
 )
 
 // NewMeshCatalog creates a new service catalog
-func NewMeshCatalog(kubeController k8s.Controller, meshSpec smi.MeshSpec, certManager certificate.Manager,
+func NewMeshCatalog(kubeController k8s.Controller, meshSpec smi.MeshSpec,
 	policyController policy.Controller, stop <-chan struct{},
 	cfg configurator.Configurator, serviceProviders []service.Provider, endpointsProviders []endpoint.Provider,
 	msgBroker *messaging.Broker) *MeshCatalog {
@@ -23,7 +22,6 @@ func NewMeshCatalog(kubeController k8s.Controller, meshSpec smi.MeshSpec, certMa
 		serviceProviders:   serviceProviders,
 		endpointsProviders: endpointsProviders,
 		meshSpec:           meshSpec,
-		certManager:        certManager,
 		policyController:   policyController,
 		configurator:       cfg,
 

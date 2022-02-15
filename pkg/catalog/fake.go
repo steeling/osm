@@ -10,7 +10,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -54,8 +53,6 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient versio
 	osmNamespace := "-test-osm-namespace-"
 	osmMeshConfigName := "-test-osm-mesh-config-"
 	cfg := configurator.NewConfigurator(meshConfigClient, stop, osmNamespace, osmMeshConfigName, nil)
-
-	certManager := tresor.NewFakeCertManager(cfg)
 
 	// #1683 tracks potential improvements to the following dynamic mocks
 	mockKubeController.EXPECT().ListServices().DoAndReturn(func() []*corev1.Service {
@@ -115,7 +112,7 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient versio
 	mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
 	mockPolicyController.EXPECT().GetIngressBackendPolicy(gomock.Any()).Return(nil).AnyTimes()
 
-	return NewMeshCatalog(mockKubeController, meshSpec, certManager,
+	return NewMeshCatalog(mockKubeController, meshSpec,
 		mockPolicyController, stop, cfg, serviceProviders, endpointProviders, messaging.NewBroker(stop))
 }
 
@@ -150,8 +147,6 @@ func newFakeMeshCatalog() *MeshCatalog {
 	configClient := configFake.NewSimpleClientset()
 
 	cfg := configurator.NewConfigurator(configClient, stop, osmNamespace, osmMeshConfigName, nil)
-
-	certManager := tresor.NewFakeCertManager(cfg)
 
 	// Create a Bookstore-v1 pod
 	pod := tests.NewPodFixture(tests.Namespace, tests.BookstoreV1Service.Name, tests.BookstoreServiceAccountName, tests.PodLabels)
@@ -230,6 +225,6 @@ func newFakeMeshCatalog() *MeshCatalog {
 
 	mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
 
-	return NewMeshCatalog(mockKubeController, meshSpec, certManager,
+	return NewMeshCatalog(mockKubeController, meshSpec,
 		mockPolicyController, stop, cfg, serviceProviders, endpointProviders, messaging.NewBroker(stop))
 }
