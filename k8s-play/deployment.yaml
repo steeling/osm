@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: httpbin
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: httpbin
+  labels:
+    app: httpbin
+    service: httpbin
+spec:
+  ports:
+    - name: tcp # gets tcp health check
+      port: 14001
+  selector:
+    app: httpbin
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: httpbin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: httpbin
+  template:
+    metadata:
+      labels:
+        app: httpbin
+    spec:
+      serviceAccountName: httpbin
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
+      initContainers:
+        - image: openservicemsh/init:latest
+          name: init
+          command: [/bin/sh]
+          args:
+            [
+              "-c",
+              "iptables-restore --noflush <<EOF",
+              "*nat",
+              ":OSM_PROXY_INBOUND - [0:0]",
+              ":OSM_PROXY_IN_REDIRECT - [0:0]",
+              ":OSM_PROXY_OUTBOUND - [0:0]",
+              ":OSM_PROXY_OUT_REDIRECT - [0:0]",
+              "-A OSM_PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port 15003",
+              "-A PREROUTING -p tcp -j OSM_PROXY_INBOUND",
+              "-A OSM_PROXY_INBOUND -p tcp --dport 15010 -j RETURN",
+              "-A OSM_PROXY_INBOUND -p tcp --dport 15901 -j RETURN",
+              "-A OSM_PROXY_INBOUND -p tcp --dport 15902 -j RETURN",
+              "-A OSM_PROXY_INBOUND -p tcp --dport 15903 -j RETURN",
+              "-A OSM_PROXY_INBOUND -p tcp -j OSM_PROXY_IN_REDIRECT",
+              "-A OSM_PROXY_OUT_REDIRECT -p tcp -j REDIRECT --to-port 15001",
+              "-A OSM_PROXY_OUT_REDIRECT -p tcp --dport 15000 -j ACCEPT",
+              "-A OUTPUT -p tcp -j OSM_PROXY_OUTBOUND",
+              "-A OSM_PROXY_OUTBOUND -o lo ! -d 127.0.0.1/32 -m owner --uid-owner 1500 -j OSM_PROXY_IN_REDIRECT",
+              "-A OSM_PROXY_OUTBOUND -o lo -m owner ! --uid-owner 1500 -j RETURN",
+              "-A OSM_PROXY_OUTBOUND -m owner --uid-owner 1500 -j RETURN",
+              "-A OSM_PROXY_OUTBOUND -d 127.0.0.1/32 -j RETURN",
+              "-A OSM_PROXY_OUTBOUND -j OSM_PROXY_OUT_REDIRECT",
+              "COMMIT",
+              "EOF",
+            ]
+      containers:
+        - name: envoy
+          image: $IMAGE
+          ports:
+            - name: admin
+              containerPort: 15000
+            - name: inbound
+              containerPort: 15003
+        - image: kennethreitz/httpbin
+          imagePullPolicy: IfNotPresent
+          name: httpbin-http
+          command:
+            ["gunicorn", "-b", "0.0.0.0:14001", "httpbin:app", "-k", "gevent"]
+          ports:
+            - containerPort: 8080
+        - image: kennethreitz/httpbin
+          imagePullPolicy: IfNotPresent
+          name: httpbin-tcp
+          command:
+            ["gunicorn", "-b", "0.0.0.0:14001", "httpbin:app", "-k", "gevent"]
+          ports:
+            - containerPort: 14001

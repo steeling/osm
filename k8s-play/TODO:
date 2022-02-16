@@ -1,0 +1,6 @@
+TODO:
+
+1. add a WASM file
+2. Test that a TCP probe CI_MIN_SUCCESS_THRESHOLD
+3. Change port and test TCP probe fails
+4. In both scenarios ensure no traffic hits the 8080 port

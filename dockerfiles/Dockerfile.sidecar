@@ -1,0 +1,8 @@
+FROM  envoyproxy/envoy-alpine@sha256:6502a637c6c5fba4d03d0672d878d12da4bcc7a0d0fb3f1d506982dde0039abd
+
+COPY boostrapconfig.yaml /etc/envoy/
+COPY play.wasm /etc/envoy
+
+RUN chmod go+r /etc/envoy/envoy.yaml
+
+CMD ["/usr/local/bin/envoy", "-c", "/etc/envoy/envoy.yaml", "-l", "info", "--log-path", "/tmp/envoy_info.log"]
