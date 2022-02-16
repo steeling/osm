@@ -53,6 +53,7 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, conf
 		},
 	}
 
+	log.Info().Msgf("setting upstream cluster %s which is headless %t for identity %s", config.Name, config.Service.Headless, downstreamIdentity)
 	// Configure service discovery based on traffic policies
 	if config.Service.Headless {
 		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_ORIGINAL_DST}
