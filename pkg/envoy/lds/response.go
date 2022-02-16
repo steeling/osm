@@ -21,6 +21,7 @@ import (
 // 3. Prometheus listener for metrics
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
 	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
+	log.Error().Str("proxy", proxy.String()).Msg("proof that we're logging!!!!")
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServiceIdentity)).
 			Str("proxy", proxy.String()).Msgf("Error retrieving ServiceAccount for proxy")
@@ -49,13 +50,14 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	// --- OUTBOUND -------------------
 	outboundListener, err := lb.newOutboundListener()
+	log.Info().Msgf("here we are with outboundlistener: %++v for %s", outboundListener, proxyIdentity)
 	if err != nil {
 		log.Error().Err(err).Str("proxy", proxy.String()).Msg("Error building outbound listener")
 	} else {
 		if outboundListener == nil {
 			// This check is important to prevent attempting to configure a listener without a filter chain which
 			// otherwise results in an error.
-			log.Debug().Str("proxy", proxy.String()).Msg("Not programming nil outbound listener")
+			log.Warn().Str("proxy", proxy.String()).Msg("Not programming nil outbound listener")
 		} else {
 			ldsResources = append(ldsResources, outboundListener)
 		}

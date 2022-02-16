@@ -1,0 +1,113 @@
+{"level":"info","component":"osm-controller/main","time":"2022-02-16T07:09:19Z","file":"osm-controller.go:124","message":"Starting osm-controller3 dev; 19ccae2d386c97150eda970590cd881d24b9b824; "}
+W0216 07:09:19.502245       1 client_config.go:615] Neither --kubeconfig nor --master was specified.  Using the inClusterConfig.  This might not work.
+{"level":"debug","component":"configurator","time":"2022-02-16T07:09:19Z","file":"client.go:55","message":"Started OSM MeshConfig informer"}
+{"level":"debug","component":"configurator","time":"2022-02-16T07:09:19Z","file":"client.go:56","message":"[MeshConfig client] Waiting for MeshConfig informer's cache to sync"}
+{"level":"debug","component":"kube-controller","event":"meshconfig-added","resource_name":"osm-system/osm-mesh-config","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: meshconfig-added"}
+{"level":"debug","component":"configurator","time":"2022-02-16T07:09:19Z","file":"client.go:63","message":"[MeshConfig client] Cache sync for MeshConfig informer finished"}
+{"level":"info","component":"kube-controller","time":"2022-02-16T07:09:19Z","file":"client.go:154","message":"Namespace controller client started"}
+{"level":"info","component":"kube-controller","time":"2022-02-16T07:09:19Z","file":"client.go:169","message":"Waiting for Services informer cache sync..."}
+{"level":"info","component":"kube-controller","time":"2022-02-16T07:09:19Z","file":"client.go:169","message":"Waiting for ServiceAccounts informer cache sync..."}
+{"level":"info","component":"kube-controller","time":"2022-02-16T07:09:19Z","file":"client.go:169","message":"Waiting for Pods informer cache sync..."}
+{"level":"info","component":"kube-controller","time":"2022-02-16T07:09:19Z","file":"client.go:169","message":"Waiting for Endpoints informer cache sync..."}
+{"level":"info","component":"kube-controller","time":"2022-02-16T07:09:19Z","file":"client.go:169","message":"Waiting for Namespaces informer cache sync..."}
+{"level":"debug","component":"kube-controller","event":"namespace-added","resource_name":"bookbuyer","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"namespace-added","resource_name":"default","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"namespace-added","resource_name":"bookstore","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"namespace-added","resource_name":"bookthief","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"serviceaccount-added","resource_name":"default/bookinfo-ratings","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"serviceaccount-added","resource_name":"default/bookinfo-reviews","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"serviceaccount-added","resource_name":"bookstore/bookstore","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"serviceaccount-added","resource_name":"bookbuyer/default","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"serviceaccount-added","resource_name":"default/sleep","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"serviceaccount-added","resource_name":"bookthief/default","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"serviceaccount-added","resource_name":"bookbuyer/bookbuyer","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"serviceaccount-added","resource_name":"bookstore/default","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"serviceaccount-added","resource_name":"default/bookinfo-details","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"serviceaccount-added","resource_name":"bookthief/bookthief","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"serviceaccount-added","resource_name":"default/bookinfo-productpage","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"serviceaccount-added","resource_name":"default/default","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"service-added","resource_name":"default/productpage","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"service-added","resource_name":"default/sleep","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"service-added","resource_name":"default/my-release-zookeeper-headless","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"service-added","resource_name":"default/kubernetes","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"service-added","resource_name":"default/ratings","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"service-added","resource_name":"default/my-release-zookeeper","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"service-added","resource_name":"default/reviews","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"service-added","resource_name":"bookstore/bookstore","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"service-added","resource_name":"default/details","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: namespace-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: namespace-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: namespace-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: namespace-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: serviceaccount-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: serviceaccount-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: serviceaccount-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: serviceaccount-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: serviceaccount-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: serviceaccount-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: serviceaccount-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: serviceaccount-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: serviceaccount-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: serviceaccount-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: serviceaccount-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: serviceaccount-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: service-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: service-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: service-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: service-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: service-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: service-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: service-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: service-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: service-added"}
+{"level":"debug","component":"kube-controller","event":"pod-added","resource_name":"default/productpage-v1-5f8cfbdf98-9xhzd","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"pod-added","resource_name":"default/my-release-zookeeper-2","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"pod-added","resource_name":"default/reviews-v1-5b877856bb-6j6db","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"pod-added","resource_name":"default/my-release-zookeeper-0","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"pod-added","resource_name":"default/my-release-zookeeper-1","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"pod-added","resource_name":"bookthief/bookthief-75d7fc58f-klj55","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"pod-added","resource_name":"default/details-v1-5cf6cf468d-dfpds","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"pod-added","resource_name":"default/sleep-66d6745dbf-9pw5m","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"pod-added","resource_name":"bookstore/bookstore-7dcb4874d5-5m8cb","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"pod-added","resource_name":"bookbuyer/bookbuyer-86df7f6764-l99mk","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"debug","component":"kube-controller","event":"pod-added","resource_name":"default/ratings-v1-5897567f9d-zvptz","time":"2022-02-16T07:09:19Z","file":"event_handlers.go:94","message":"received kubernetes resource event"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: pod-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: pod-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: pod-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: pod-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: pod-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: pod-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: pod-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: pod-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: pod-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: pod-added"}
+{"level":"trace","component":"message-broker","time":"2022-02-16T07:09:19Z","file":"broker.go:202","message":"Processing msg kind: pod-added"}
+{"level":"info","component":"kube-controller","time":"2022-02-16T07:09:19Z","file":"client.go:177","message":"Caches for [Services ServiceAccounts Pods Endpoints Namespaces] synced successfully"}
+{"level":"info","component":"smi-mesh-spec","time":"2022-02-16T07:09:19Z","file":"client.go:66","message":"SMI client started"}
+{"level":"info","component":"smi-mesh-spec","time":"2022-02-16T07:09:19Z","file":"client.go:87","message":"Starting informer: HTTPRouteGroup"}
+{"level":"info","component":"smi-mesh-spec","time":"2022-02-16T07:09:19Z","file":"client.go:87","message":"Starting informer: TCPRoute"}
+{"level":"info","component":"smi-mesh-spec","time":"2022-02-16T07:09:19Z","file":"client.go:87","message":"Starting informer: TrafficTarget"}
+{"level":"info","component":"smi-mesh-spec","time":"2022-02-16T07:09:19Z","file":"client.go:87","message":"Starting informer: TrafficSplit"}
+{"level":"info","component":"smi-mesh-spec","time":"2022-02-16T07:09:19Z","file":"client.go:92","message":"Waiting for informers [HTTPRouteGroup TCPRoute TrafficTarget TrafficSplit] caches to sync"}
+{"level":"info","component":"smi-mesh-spec","time":"2022-02-16T07:09:20Z","file":"client.go:97","message":"Cache sync finished for informers [HTTPRouteGroup TCPRoute TrafficTarget TrafficSplit]"}
+{"level":"info","component":"cert-provider-util","time":"2022-02-16T07:09:21Z","file":"config.go:188","message":"Secret osm-system/osm-ca-bundle already exists in kubernetes, loading."}
+{"level":"info","component":"policy-controller","time":"2022-02-16T07:09:21Z","file":"client.go:87","message":"Starting informer clients for API group policy.openservicemesh.io/v1alpha1"}
+{"level":"info","component":"policy-controller","time":"2022-02-16T07:09:21Z","file":"client.go:106","message":"Starting informer: Egress"}
+{"level":"info","component":"policy-controller","time":"2022-02-16T07:09:21Z","file":"client.go:106","message":"Starting informer: IngressBackend"}
+{"level":"info","component":"policy-controller","time":"2022-02-16T07:09:21Z","file":"client.go:111","message":"Waiting for informers [Egress IngressBackend] caches to sync"}
+{"level":"info","component":"policy-controller","time":"2022-02-16T07:09:21Z","file":"client.go:116","message":"Cache sync finished for [Egress IngressBackend] informers in API group policy.openservicemesh.io/v1alpha1"}
+{"level":"trace","component":"tresor","time":"2022-02-16T07:09:21Z","file":"certificate_manager.go:111","message":"Created new certificate for SerialNumber=259120577361800841963601307291427844728; validity=87600h0m0s; expires on 2032-02-14 07:09:21.618485585 +0000 UTC m=+315360002.138305259; serial: c2f0ced3811c9dc501297df74334b278"}
+{"level":"trace","component":"tresor","time":"2022-02-16T07:09:21Z","file":"certificate_manager.go:148","message":"It took 94.349773ms to issue certificate with SerialNumber=259120577361800841963601307291427844728"}
+{"level":"info","component":"workerpool","time":"2022-02-16T07:09:21Z","file":"workerpool.go:63","message":"New worker pool setting up 2 workers"}
+{"level":"info","component":"utilities","time":"2022-02-16T07:09:21Z","file":"grpc.go:20","message":"Setting up ADS gRPC server..."}
+{"level":"info","component":"workerpool","time":"2022-02-16T07:09:21Z","file":"workerpool.go:116","message":"Worker 0 running"}
+{"level":"info","component":"workerpool","time":"2022-02-16T07:09:21Z","file":"workerpool.go:116","message":"Worker 1 running"}
+{"level":"debug","component":"utilities","time":"2022-02-16T07:09:21Z","file":"grpc.go:28","message":"Parameters for ADS gRPC server: MaxConcurrentStreams=100000;  KeepAlive=1m0s"}
+{"level":"info","component":"utilities","time":"2022-02-16T07:09:21Z","file":"grpc.go:58","message":"[grpc][ADS] Started server on: [::]:15128"}
+{"level":"trace","component":"tresor","time":"2022-02-16T07:09:21Z","file":"certificate_manager.go:111","message":"Created new certificate for SerialNumber=178324867452336429962076932774877720066; validity=87600h0m0s; expires on 2032-02-14 07:09:21.720718715 +0000 UTC m=+315360002.240538389; serial: 86281ec5ca351da413550b304613ee02"}
+{"level":"trace","component":"tresor","time":"2022-02-16T07:09:21Z","file":"certificate_manager.go:148","message":"It took 100.992121ms to issue certificate with SerialNumber=178324867452336429962076932774877720066"}
+{"level":"info","component":"cert-provider-util","time":"2022-02-16T07:09:21Z","file":"config.go:186","message":"Secret osm-system/validating-webhook-cert-secret created in kubernetes"}
+{"level":"info","component":"osm-validator","time":"2022-02-16T07:09:21Z","file":"patch.go:139","message":"Finished creating ValidatingWebhookConfiguration osm-validator-mesh-osm"}
+{"level":"info","component":"osm-validator","time":"2022-02-16T07:09:21Z","file":"server.go:167","message":"Starting resource validator webhook server on port: 9093"}
+{"level":"info","component":"http-server","time":"2022-02-16T07:09:21Z","file":"httpserver.go:68","message":"Starting API Server on :9091"}

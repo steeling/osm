@@ -1,0 +1,16 @@
+FROM golang:1.17 AS builder
+ARG LDFLAGS
+ARG TARGETOS
+ARG TARGETARCH
+
+WORKDIR /osm
+# RUN mkdir -p pkg/envoy/lds
+COPY ./OWNERS pkg/envoy/lds/
+COPY . .
+# RUN --mount=type=cache,target=/root/.cache/go-build \
+#     --mount=type=cache,target=/go/pkg \
+#     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o osm-controller -ldflags "$LDFLAGS" ./cmd/osm-controller
+
+# FROM gcr.io/distroless/static
+# COPY --from=builder /osm/osm-controller /
+ENTRYPOINT ["ls"]

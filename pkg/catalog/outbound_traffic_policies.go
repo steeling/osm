@@ -34,6 +34,9 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 	routeConfigPerPort := make(map[int][]*trafficpolicy.OutboundTrafficPolicy)
 	downstreamSvcAccount := downstreamIdentity.ToK8sServiceAccount()
 
+	identities := mc.listAllowedUpstreamServicesIncludeApex(downstreamIdentity)
+	log.Info().Msgf("steeling: Found %d upstream services for downstream %s", len(identities), downstreamSvcAccount.String())
+
 	// For each service, build the traffic policies required to access it.
 	// It is important to aggregate HTTP route configs by the service's port.
 	for _, meshSvc := range mc.listAllowedUpstreamServicesIncludeApex(downstreamIdentity) {
@@ -142,6 +145,7 @@ func (mc *MeshCatalog) ListOutboundServicesForMulticlusterGateway() []service.Me
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
+		log.Info().Msg("querying in permissive mode...")
 		return mc.listMeshServices()
 	}
 
@@ -192,6 +196,7 @@ func (mc *MeshCatalog) listAllowedUpstreamServicesIncludeApex(downstreamIdentity
 
 	dstServicesSet := make(map[service.MeshService]struct{}) // mapset to avoid duplicates
 	for _, upstreamSvc := range upstreamServices {
+		log.Info().Msgf("steeling: %s has target port: %d", upstreamSvc, upstreamSvc.TargetPort)
 		// All upstreams with an endpoint are expected to have TargetPort set.
 		// Only a TrafficSplit apex service (virtual service) that does not have endpoints
 		// will have an unset TargetPort. We will not include such a service in the initial

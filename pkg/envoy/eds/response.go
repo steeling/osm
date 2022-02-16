@@ -24,7 +24,6 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 	if request != nil && len(request.ResourceNames) > 0 {
 		return fulfillEDSRequest(meshCatalog, proxy, request)
 	}
-
 	// Otherwise, generate all endpoint configuration for this proxy
 	return generateEDSConfig(meshCatalog, proxy)
 }

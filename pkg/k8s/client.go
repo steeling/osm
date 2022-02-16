@@ -349,24 +349,23 @@ func ServiceToMeshServices(c Controller, svc corev1.Service) []service.MeshServi
 			Name:      svc.Name,
 			Port:      uint16(portSpec.Port),
 			Protocol:  pointer.StringDeref(portSpec.AppProtocol, constants.ProtocolHTTP),
-			Headless:  svc.Spec.ClusterIP == corev1.ClusterIPNone && len(svc.Spec.ClusterIPs) == 0,
+			Headless:  svc.Spec.ClusterIP == corev1.ClusterIPNone || len(svc.Spec.ClusterIPs) == 0,
 		}
-		meshServices = append(meshServices, meshSvc)
+		log.Info().Msgf("steeling: converting to %s %s, %t, %d", svc.Name, svc.Spec.ClusterIP, svc.Spec.ClusterIP == corev1.ClusterIPNone, len(svc.Spec.ClusterIPs))
 		if meshSvc.Headless {
 			// Headless services don't use destination port, so we don't need to query for endpoints here.
 			// It simply passes through on the same port.
+			log.Info().Msgf("Service %s/%s is headless, skipping endpoints query", svc.Namespace, svc.Name)
 			meshSvc.TargetPort = meshSvc.Port
-			continue
-		}
-		// The endpoints for the kubernetes service carry information that allows us to retrieve the TargetPort for the
-		// MeshService. This is explicitly used since the TargetPort in the service could be either a port number
-		// or a named port.
-		endpoints, _ := c.GetEndpoints(meshSvc)
-		if endpoints != nil {
+		} else if endpoints, _ := c.GetEndpoints(meshSvc); endpoints != nil {
+			// The endpoints for the kubernetes service carry information that allows us to retrieve the TargetPort for the
+			// MeshService. This is explicitly used since the TargetPort in the service could be either a port number
+			// or a named port.
 			meshSvc.TargetPort = getTargetPortFromEndpoints(portSpec.Name, *endpoints)
 		} else {
 			log.Warn().Msgf("k8s service %s/%s does not have endpoints but is being represented as a MeshService", svc.Namespace, svc.Name)
 		}
+		meshServices = append(meshServices, meshSvc)
 	}
 	return meshServices
 }

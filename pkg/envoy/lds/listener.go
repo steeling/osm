@@ -93,7 +93,7 @@ func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error)
 		// and fallback to the default filter chain.
 		listener.ContinueOnListenerFiltersTimeout = true
 	}
-
+	log.Info().Msgf("steeling: Outbound listener len of filter chains: %d %t", len(listener.FilterChains), listener.DefaultFilterChain == nil)
 	if len(listener.FilterChains) == 0 && listener.DefaultFilterChain == nil {
 		// Programming a listener with no filter chains is an error.
 		// It is possible for the outbound listener to have no filter chains if

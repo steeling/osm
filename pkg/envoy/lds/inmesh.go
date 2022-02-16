@@ -391,13 +391,14 @@ func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.F
 	var filterChains []*xds_listener.FilterChain
 
 	outboundMeshTrafficPolicy := lb.meshCatalog.GetOutboundMeshTrafficPolicy(lb.serviceIdentity)
+	log.Info().Msgf("steeling: outbound mesh traffic policy for service %t for %s", outboundMeshTrafficPolicy == nil, lb.serviceIdentity)
 	if outboundMeshTrafficPolicy == nil {
 		// no outbound mesh traffic policies
 		return nil
 	}
 
 	for _, trafficMatch := range outboundMeshTrafficPolicy.TrafficMatches {
-		log.Trace().Msgf("Building outbound mesh filter chain %s for proxy with identity %s", trafficMatch.Name, lb.serviceIdentity)
+		log.Info().Msgf("Building outbound mesh filter chain %s for proxy with identity %s and destination: %d", trafficMatch.Name, lb.serviceIdentity, trafficMatch.DestinationPort)
 		// Create an outbound filter chain match per TrafficMatch object
 		switch strings.ToLower(trafficMatch.DestinationProtocol) {
 		case constants.ProtocolHTTP, constants.ProtocolGRPC:

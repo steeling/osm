@@ -182,6 +182,7 @@ OSM_TARGETS = init osm-controller osm-injector osm-crds osm-bootstrap osm-preins
 DOCKER_OSM_TARGETS = $(addprefix docker-build-, $(OSM_TARGETS))
 
 .PHONY: docker-build-osm
+docker-build-osm: gen-imports
 docker-build-osm: $(DOCKER_OSM_TARGETS)
 
 .PHONY: buildx-context
