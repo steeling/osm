@@ -3,6 +3,8 @@
 package messaging
 
 import (
+	"time"
+
 	"github.com/cskr/pubsub"
 	"k8s.io/client-go/util/workqueue"
 
@@ -32,3 +34,28 @@ type proxyUpdateEvent struct {
 	msg   events.PubSubMessage
 	topic string
 }
+
+// EventType is the type of event we have received from Kubernetes
+type EventType string
+
+func (et EventType) String() string {
+	return string(et)
+}
+
+const (
+	// AddEvent is a type of a Kubernetes API event.
+	AddEvent EventType = "ADD"
+
+	// UpdateEvent is a type of a Kubernetes API event.
+	UpdateEvent EventType = "UPDATE"
+
+	// DeleteEvent is a type of a Kubernetes API event.
+	DeleteEvent EventType = "DELETE"
+)
+
+const (
+	// DefaultKubeEventResyncInterval is the default resync interval for k8s events
+	// This is set to 0 because we do not need resyncs from k8s client, and have our
+	// own Ticker to turn on periodic resyncs.
+	DefaultKubeEventResyncInterval = 0 * time.Second
+)

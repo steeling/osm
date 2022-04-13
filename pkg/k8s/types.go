@@ -3,8 +3,6 @@
 package k8s
 
 import (
-	"time"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -20,31 +18,6 @@ import (
 
 var (
 	log = logger.New("kube-controller")
-)
-
-// EventType is the type of event we have received from Kubernetes
-type EventType string
-
-func (et EventType) String() string {
-	return string(et)
-}
-
-const (
-	// AddEvent is a type of a Kubernetes API event.
-	AddEvent EventType = "ADD"
-
-	// UpdateEvent is a type of a Kubernetes API event.
-	UpdateEvent EventType = "UPDATE"
-
-	// DeleteEvent is a type of a Kubernetes API event.
-	DeleteEvent EventType = "DELETE"
-)
-
-const (
-	// DefaultKubeEventResyncInterval is the default resync interval for k8s events
-	// This is set to 0 because we do not need resyncs from k8s client, and have our
-	// own Ticker to turn on periodic resyncs.
-	DefaultKubeEventResyncInterval = 0 * time.Second
 )
 
 // InformerKey stores the different Informers we keep for K8s resources

@@ -9,10 +9,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-	fakePolicyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
+	fakeOSMClientset "github.com/openservicemesh/osm/pkg/gen/client/osm/clientset/versioned/fake"
 )
 
-func TestPolicyCheckConflictRun(t *testing.T) {
+func TesheckConflictRun(t *testing.T) {
 	testNs := "test"
 
 	testCases := []struct {
@@ -215,7 +215,7 @@ func TestPolicyCheckConflictRun(t *testing.T) {
 
 			switch tc.resourceKind {
 			case "IngressBackend":
-				cmd.policyClient = fakePolicyClientset.NewSimpleClientset(tc.existingResources...)
+				cmd.osmClient = fakeOSMClientset.NewSimpleClientset(tc.existingResources...)
 			}
 
 			err := cmd.run()
