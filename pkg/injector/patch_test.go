@@ -9,12 +9,15 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 	tassert "github.com/stretchr/testify/assert"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
+
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -23,13 +26,15 @@ import (
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
+const (
+	namespace  = "-namespace-"
+	podName    = "-pod-name-"
+	envoyImage = "-envoy-image-"
+)
+
 func TestCreatePatch(t *testing.T) {
 	// Setup all variables and constants needed for the tests
 	proxyUUID := uuid.New()
-	const (
-		namespace = "-namespace-"
-		podName   = "-pod-name-"
-	)
 
 	testCases := []struct {
 		name            string
@@ -126,7 +131,6 @@ func TestCreatePatch(t *testing.T) {
 
 			client := fake.NewSimpleClientset()
 			mockCtrl := gomock.NewController(t)
-			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			mockNsController := k8s.NewMockController(mockCtrl)
 			mockNsController.EXPECT().GetNamespace(namespace).Return(tc.namespace)
 			_, err := client.CoreV1().Namespaces().Create(context.TODO(), tc.namespace, metav1.CreateOptions{})
@@ -136,22 +140,9 @@ func TestCreatePatch(t *testing.T) {
 				kubeClient:          client,
 				kubeController:      mockNsController,
 				certManager:         tresor.NewFake(nil),
-				configurator:        mockConfigurator,
+				configurator:        setupMockConfigurator(mockCtrl, tc.os == constants.OSLinux),
 				nonInjectNamespaces: mapset.NewSet(),
 			}
-
-			mockConfigurator.EXPECT().GetEnvoyWindowsImage().Return("envoy-linux-image").AnyTimes()
-			mockConfigurator.EXPECT().GetEnvoyImage().Return("envoy-windows-image").AnyTimes()
-			mockConfigurator.EXPECT().GetInitContainerImage().Return("init-container-image").AnyTimes()
-
-			if tc.os == constants.OSLinux {
-				mockConfigurator.EXPECT().IsPrivilegedInitContainer().Return(false).Times(1)
-			}
-
-			mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
-			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("").Times(1)
-			mockConfigurator.EXPECT().GetProxyResources().Return(corev1.ResourceRequirements{}).Times(1)
-			mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
 			pod := tests.NewOsSpecificPodFixture(namespace, podName, tests.BookstoreServiceAccountName, nil, tc.os)
 
@@ -205,6 +196,24 @@ func TestCreatePatch(t *testing.T) {
 		_, err = wh.createPatch(&pod, req, proxyUUID)
 		assert.Error(err)
 	})
+}
+
+func setupMockConfigurator(mockCtrl *gomock.Controller, linux bool) *configurator.MockConfigurator {
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+
+	mockConfigurator.EXPECT().GetEnvoyWindowsImage().Return("envoy-linux-image").AnyTimes()
+	mockConfigurator.EXPECT().GetEnvoyImage().Return("envoy-windows-image").AnyTimes()
+	mockConfigurator.EXPECT().GetInitContainerImage().Return("init-container-image").AnyTimes()
+
+	if linux {
+		mockConfigurator.EXPECT().IsPrivilegedInitContainer().Return(false).Times(1)
+	}
+
+	mockConfigurator.EXPECT().GetMeshConfig().Return(configv1alpha2.MeshConfig{}).AnyTimes()
+	mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("").Times(1)
+	mockConfigurator.EXPECT().GetProxyResources().Return(corev1.ResourceRequirements{}).AnyTimes()
+	mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
+	return mockConfigurator
 }
 
 func TestVerifyPrerequisites(t *testing.T) {
@@ -270,6 +279,86 @@ func TestVerifyPrerequisites(t *testing.T) {
 
 			err := wh.verifyPrerequisites(tc.podOS)
 			assert.Equal(tc.expectErr, err != nil)
+		})
+	}
+}
+
+func TestMaybeStripOSMConfiguration(t *testing.T) {
+	// tests, nothing on it
+	// 4. has it not in the first spot, removed.
+	original := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, nil)
+
+	original.Spec.Containers = []corev1.Container{
+		{
+			Name: "test-container",
+		},
+	}
+
+	original.Spec.Volumes = []corev1.Volume{
+		{
+			Name: "test-volume",
+		},
+	}
+
+	client := fake.NewSimpleClientset()
+	mockCtrl := gomock.NewController(t)
+
+	mockNsController := k8s.NewMockController(mockCtrl)
+	mockNsController.EXPECT().GetNamespace("").Return(&corev1.Namespace{}).AnyTimes()
+	_, err := client.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{}, metav1.CreateOptions{})
+	assert.NoError(t, err)
+
+	wh := &mutatingWebhook{
+		kubeClient:          client,
+		kubeController:      mockNsController,
+		certManager:         tresor.NewFake(nil),
+		configurator:        setupMockConfigurator(mockCtrl, true),
+		nonInjectNamespaces: mapset.NewSet(),
+	}
+
+	// pod := tests.NewOsSpecificPodFixture(namespace, podName, tests.BookstoreServiceAccountName, nil)
+
+	// Create patch should mutate this
+	mutated := original.DeepCopy()
+	_, err = wh.createPatch(mutated, &admissionv1.AdmissionRequest{}, uuid.New())
+	assert.NoError(t, err)
+	// verify it got mutated
+	tassert.Contains(t, mutated.Labels, constants.EnvoyUniqueIDLabelName)
+
+	irregular := mutated.DeepCopy()
+
+	irregular.Spec.Volumes = append(irregular.Spec.Volumes, corev1.Volume{Name: "test-volume-2"})
+	irregular.Spec.InitContainers = append(irregular.Spec.InitContainers, corev1.Container{Name: "test-init-2"})
+	irregular.Spec.Containers = append(irregular.Spec.Containers, corev1.Container{Name: "test-container-2"})
+
+	testCases := []struct {
+		name     string
+		input    corev1.Pod
+		expected corev1.Pod
+	}{
+		{
+			name:     "pod that has not been injected, doesn't change",
+			input:    original,
+			expected: *original.DeepCopy(),
+		},
+		{
+			name:     "pod that has been injected, has all the osm components removed ",
+			input:    *mutated,
+			expected: *original.DeepCopy(),
+		},
+		{
+			name:     "pod with volumes or sidecar in different locations still has the correct components removed",
+			input:    *irregular,
+			expected: *original.DeepCopy(),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			fmt.Println("here's the deepcopy:", original.DeepCopy())
+			err := wh.maybeStripOSMConfiguration(&tc.input, "")
+			tassert.NoError(t, err)
+			tassert.Equal(t, tc.expected, tc.input)
 		})
 	}
 }

@@ -215,6 +215,12 @@ func (wh *mutatingWebhook) mutate(req *admissionv1.AdmissionRequest, proxyUUID u
 		return webhook.AdmissionError(err)
 	}
 
+	// strip any previously injected configuration. this can happen when using the `kubectl debug` command which will
+	// copy an existing pod definition.
+	if err := wh.maybeStripOSMConfiguration(&pod, req.Namespace); err != nil {
+		return webhook.AdmissionError(err)
+	}
+
 	// Start building the response
 	resp := &admissionv1.AdmissionResponse{
 		Allowed: true,

@@ -21,6 +21,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
+// Note that this will mutate the pod object.
 func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.AdmissionRequest, proxyUUID uuid.UUID) ([]byte, error) {
 	namespace := req.Namespace
 
@@ -56,7 +57,6 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 
 	// Create volume for envoy TLS secret
 	pod.Spec.Volumes = append(pod.Spec.Volumes, getVolumeSpec(envoyBootstrapConfigName)...)
-
 	// On Windows we cannot use init containers to program HNS because it requires elevated privileges
 	// As a result we assume that the HNS redirection policies are already programmed via a CNI plugin.
 	// Skip adding the init container and only patch the pod spec with sidecar container.
@@ -196,4 +196,60 @@ func makePatches(req *admissionv1.AdmissionRequest, pod *corev1.Pod) []jsonpatch
 	}
 	admissionResponse := admission.PatchResponseFromRaw(original, current)
 	return admissionResponse.Patches
+}
+
+func alreadyInjected(pod *corev1.Pod) bool {
+	return pod.Labels != nil && pod.Labels[constants.EnvoyUniqueIDLabelName] != ""
+}
+
+func (wh *mutatingWebhook) maybeStripOSMConfiguration(pod *corev1.Pod, namespace string) error {
+	fmt.Println("already injected? ", alreadyInjected(pod))
+	if !alreadyInjected(pod) {
+		return nil
+	}
+	fmt.Println("here!!!!")
+	// Strip out the OSM configuration from the pod
+
+	// 1. The init container
+	for i, c := range pod.Spec.InitContainers {
+		if c.Name == constants.InitContainerName {
+			fmt.Println("FOUND AN INIT CONTAINER!!!!")
+			pod.Spec.InitContainers = append(pod.Spec.InitContainers[:i], pod.Spec.InitContainers[i+1:]...)
+		}
+	}
+	fmt.Println("but did i remove it???", pod.Spec.InitContainers)
+
+	// 2. The prior annotations
+	metricsEnabled, err := wh.isMetricsEnabled(namespace)
+	if err != nil {
+		return err
+	}
+
+	delete(pod.Labels, constants.EnvoyUniqueIDLabelName)
+	if metricsEnabled {
+		delete(pod.Annotations, constants.PrometheusScrapeAnnotation)
+		delete(pod.Annotations, constants.PrometheusPortAnnotation)
+		delete(pod.Annotations, constants.PrometheusPathAnnotation)
+	}
+
+	// 3. The envoy sidecar, should be the last, but we double check.
+	for i, c := range pod.Spec.Containers {
+		if c.Name == constants.EnvoyContainerName {
+			pod.Spec.Containers = append(pod.Spec.Containers[:i], pod.Spec.Containers[i+1:]...)
+		}
+	}
+
+	// 4. Bootstrap volume, should be the last volume, but we double check.
+	for i, v := range pod.Spec.Volumes {
+		if v.Name == envoyBootstrapConfigVolume {
+			pod.Spec.Volumes = append(pod.Spec.Volumes[:i], pod.Spec.Volumes[i+1:]...)
+		}
+	}
+	fmt.Println("volume is now", pod.Spec.Volumes)
+
+	// Undo health probes.
+	// func rewriteHealthProbes(pod *corev1.Pod) healthProbes {
+	//
+	// undo healthcheck container if it exists...
+	return nil
 }
