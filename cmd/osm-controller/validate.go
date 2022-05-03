@@ -2,8 +2,6 @@ package main
 
 import (
 	"github.com/pkg/errors"
-
-	"github.com/openservicemesh/osm/pkg/certificate/providers"
 )
 
 // validateCLIParams contains all checks necessary that various permutations of the CLI flags are consistent
@@ -32,18 +30,5 @@ func validateCLIParams() error {
 }
 
 func validateCertificateManagerOptions() error {
-	switch providers.Kind(certProviderKind) {
-	case providers.TresorKind:
-		return providers.ValidateTresorOptions(tresorOptions)
-
-	case providers.VaultKind:
-		return providers.ValidateVaultOptions(vaultOptions)
-
-	case providers.CertManagerKind:
-		return providers.ValidateCertManagerOptions(certManagerOptions)
-
-	default:
-		return errors.Errorf("Invalid certificate manager kind %s. Please specify a valid certificate manager, one of: [%v]",
-			certProviderKind, providers.ValidCertificateProviders)
-	}
+	return getCertOptions().Validate()
 }

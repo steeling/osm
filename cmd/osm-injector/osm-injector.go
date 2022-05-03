@@ -110,6 +110,22 @@ func init() {
 	_ = admissionv1.AddToScheme(scheme)
 }
 
+// TODO(#4502): This function can be deleted once we get rid of cert options.
+func getCertOptions() providers.Options {
+	switch providers.Kind(certProviderKind) {
+	case providers.TresorKind:
+		tresorOptions.SecretName = caBundleSecretName
+		return tresorOptions
+	case providers.VaultKind:
+		return vaultOptions
+	case providers.CertManagerKind:
+		certManagerOptions.SecretName = caBundleSecretName
+		return certManagerOptions
+	}
+	log.Fatal().Msgf("unknown certificate provider kind: %s", certProviderKind)
+	return nil
+}
+
 func main() {
 	log.Info().Msgf("Starting osm-injector %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 	if err := parseFlags(); err != nil {
@@ -168,8 +184,8 @@ func main() {
 	}
 
 	// Intitialize certificate manager/provider
-	certManager, _, _, err := providers.GenerateCertificateManager(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
-		caBundleSecretName, tresorOptions, vaultOptions, certManagerOptions, msgBroker)
+	certManager, _, err := providers.GenerateCertificateManager(kubeClient, kubeConfig, cfg, osmNamespace,
+		getCertOptions(), msgBroker)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 			"Error initializing certificate manager of kind %s", certProviderKind)

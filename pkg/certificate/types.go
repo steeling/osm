@@ -6,6 +6,9 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/client-go/tools/cache"
+
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
@@ -73,4 +76,14 @@ type Manager struct {
 
 	serviceCertValidityDuration time.Duration
 	msgBroker                   *messaging.Broker
+}
+
+// MRCClient is an interface that can watch for changes to the MRC. It is typically backed by a k8s informer.
+type MRCClient interface {
+	// List for now.. can add watch and others later
+
+	// AddEventHandler uses the same interface as the k8s ResourceEventHandler, but doesn't require any
+	// hard dependency on K8s. We *do* expect the same semantics as the k8s ResourceEventHandler.
+	AddEventHandler(cache.ResourceEventHandler)
+	List() ([]*v1alpha2.MeshRootCertificate, error)
 }
