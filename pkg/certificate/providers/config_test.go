@@ -83,11 +83,19 @@ func TestGetCertificateManager(t *testing.T) {
 	}{
 		{
 			name:              "tresor as the certificate manager",
-			options:           TresorOptions{"osm-ca-bundle"},
+			options:           TresorOptions{SecretName: "osm-ca-bundle"},
 			providerNamespace: "osm-system",
 			cfg:               mockConfigurator,
 			kubeClient:        fake.NewSimpleClientset(),
 			expectError:       false,
+		},
+		{
+			name:              "tresor with no secret",
+			options:           TresorOptions{},
+			providerNamespace: "osm-system",
+			cfg:               mockConfigurator,
+			kubeClient:        fake.NewSimpleClientset(),
+			expectError:       true,
 		},
 		{
 			name:              "certManager as the certificate manager",
@@ -100,21 +108,22 @@ func TestGetCertificateManager(t *testing.T) {
 		},
 	}
 
-	for i, tc := range testCases {
-		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf(tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
 
-			if _, ok := tc.options.(CertManagerOptions); ok {
+			if opts, ok := tc.options.(CertManagerOptions); ok {
 				secret := corev1.Secret{Data: map[string][]byte{constants.KubernetesOpaqueSecretCAKey: []byte(certificates.SampleCertificatePEM)}}
+				secret.Name = opts.SecretName
 				_, err := tc.kubeClient.CoreV1().Secrets(tc.providerNamespace).Create(context.Background(), &secret, metav1.CreateOptions{})
 				assert.Nil(err)
 			}
 
 			manager, _, err := GenerateCertificateManager(tc.kubeClient, tc.kubeConfig, tc.cfg, tc.providerNamespace, tc.options, tc.msgBroker)
-			assert.NotNil(manager)
+			assert.Equal(tc.expectError, manager == nil)
 			assert.Equal(tc.expectError, err != nil)
 
-			if opt, ok := tc.options.(TresorOptions); ok {
+			if opt, ok := tc.options.(TresorOptions); ok && !tc.expectError {
 				_, err := tc.kubeClient.CoreV1().Secrets(tc.providerNamespace).Get(context.TODO(), opt.SecretName, metav1.GetOptions{})
 				assert.NoError(err)
 			}

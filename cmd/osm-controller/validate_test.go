@@ -18,9 +18,15 @@ func TestValidateCertificateManagerOptions(t *testing.T) {
 		expectError        bool
 	}{
 		{
-			name:         "Cert Provider : Tresor",
+			name:               "Cert Provider : Tresor",
+			certProvider:       providers.TresorKind.String(),
+			caBundleSecretName: "test-secret",
+			expectError:        false,
+		},
+		{
+			name:         "Cert Provider : Tresor no secret",
 			certProvider: providers.TresorKind.String(),
-			expectError:  false,
+			expectError:  true,
 		},
 		{
 			name:         "Cert Provider : Vault and token is not empty",
