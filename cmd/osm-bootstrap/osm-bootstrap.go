@@ -193,7 +193,7 @@ func main() {
 	cfg := configurator.NewConfigurator(configClient, stop, osmNamespace, osmMeshConfigName, msgBroker)
 
 	// Intitialize certificate manager/provider
-	certManager, _, err := providers.GenerateCertificateManager(kubeClient, kubeConfig, cfg, osmNamespace,
+	certManager, err := providers.NewCertificateManager(kubeClient, kubeConfig, cfg, osmNamespace,
 		getCertOptions(), msgBroker)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,

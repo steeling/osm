@@ -58,14 +58,15 @@ type Certificate struct {
 	IssuingCA pem.RootCertificate
 }
 
-type client interface {
+// Issuer is the interface for a certificate authority that can issue certificates from a given root certificate.
+type Issuer interface {
 	// IssueCertificate issues a new certificate.
 	IssueCertificate(CommonName, time.Duration) (*Certificate, error)
 }
 
 // Manager represents all necessary information for the certificate manager.
 type Manager struct {
-	client client
+	client Issuer
 
 	// The Certificate Authority root certificate to be used by this certificate manager
 	ca *Certificate
@@ -86,4 +87,7 @@ type MRCClient interface {
 	// hard dependency on K8s. We *do* expect the same semantics as the k8s ResourceEventHandler.
 	AddEventHandler(cache.ResourceEventHandler)
 	List() ([]*v1alpha2.MeshRootCertificate, error)
+
+	// GetCertIssuerForMRC returns an Issuer based on the provided MRC.
+	GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, error)
 }

@@ -19,17 +19,24 @@ var (
 
 // NewManager creates a new CertManager with the passed CA and CA Private Key
 func NewManager(
-	ca *Certificate,
-	client client,
+	mrcClient MRCClient,
 	serviceCertValidityDuration time.Duration,
 	msgBroker *messaging.Broker) (*Manager, error) {
-	if ca == nil {
-		return nil, errNoIssuingCA
+
+	// TODO(#4502): transition this call to a watch function that knows how to handle multiple MRC and can react
+	// to changes.
+	mrcs, err := mrcClient.List()
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := mrcClient.GetCertIssuerForMRC(mrcs[0])
+	if err != nil {
+		return nil, err
 	}
 
 	m := &Manager{
 		// The root certificate signing all newly issued certificates
-		ca:                          ca,
 		client:                      client,
 		serviceCertValidityDuration: serviceCertValidityDuration,
 		msgBroker:                   msgBroker,

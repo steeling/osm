@@ -2,13 +2,10 @@
 package providers
 
 import (
-	"time"
-
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 // Kind specifies the certificate provider kind
@@ -72,6 +69,7 @@ type CertManagerOptions struct {
 // It's intent is to match the custom interface that will wrap the MRC k8s informer.
 // TODO(#4502): Remove this entirely once we are fully onboarded to MRC informers.
 type MRCCompatClient struct {
+	MRCProviderGenerator
 	mrc *v1alpha2.MeshRootCertificate
 }
 
@@ -80,10 +78,6 @@ type MRCProviderGenerator struct {
 	kubeClient kubernetes.Interface
 	kubeConfig *rest.Config // used to generate a CertificateManager client.
 
-	// TODO(#4502): Remove the msgBroker once the generator returns the Providers and not the manager.
-	msgBroker *messaging.Broker
-
 	// TODO(#4502): move these to the compat client once we have added these fields to the MRC.
-	ServiceCertValidityDuration time.Duration
-	KeyBitSize                  int
+	KeyBitSize int
 }

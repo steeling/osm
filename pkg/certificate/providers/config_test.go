@@ -13,7 +13,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -21,45 +20,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/tests/certificates"
 )
-
-func TestGenerateCertificateManager(t *testing.T) {
-	fakeClient := fake.NewSimpleClientset()
-	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		clientcmd.NewDefaultClientConfigLoadingRules(),
-		&clientcmd.ConfigOverrides{},
-	)
-	kubeConfig, _ := clientConfig.ClientConfig()
-	mockCtrl := gomock.NewController(t)
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-
-	mockConfigurator.EXPECT().IsDebugServerEnabled().Return(false).AnyTimes()
-	mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
-	mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(1 * time.Hour).AnyTimes()
-
-	testCases := []struct {
-		name   string
-		option Options
-		expErr bool
-	}{
-		{
-			name:   "Successfully create certManager and certDebugger",
-			option: TresorOptions{SecretName: "osm-ca-bundle"},
-			expErr: false,
-		},
-		{
-			name:   "Fail to validate Config",
-			option: VaultOptions{},
-			expErr: true,
-		},
-	}
-	for i, tc := range testCases {
-		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			assert := tassert.New(t)
-			_, _, err := GenerateCertificateManager(fakeClient, kubeConfig, mockConfigurator, "osm-system", tc.option, nil)
-			assert.Equal(tc.expErr, err != nil)
-		})
-	}
-}
 
 func TestGetCertificateManager(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
@@ -106,6 +66,11 @@ func TestGetCertificateManager(t *testing.T) {
 			options:           CertManagerOptions{IssuerName: "test-name", IssuerKind: "test-kind", IssuerGroup: "test-group", SecretName: "test-secret"},
 			expectError:       false,
 		},
+		{
+			name:        "Fail to validate Config",
+			options:     VaultOptions{},
+			expectError: true,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -119,7 +84,7 @@ func TestGetCertificateManager(t *testing.T) {
 				assert.Nil(err)
 			}
 
-			manager, _, err := GenerateCertificateManager(tc.kubeClient, tc.kubeConfig, tc.cfg, tc.providerNamespace, tc.options, tc.msgBroker)
+			manager, err := NewCertificateManager(tc.kubeClient, tc.kubeConfig, tc.cfg, tc.providerNamespace, tc.options, tc.msgBroker)
 			assert.Equal(tc.expectError, manager == nil)
 			assert.Equal(tc.expectError, err != nil)
 
@@ -133,8 +98,7 @@ func TestGetCertificateManager(t *testing.T) {
 
 func TestGetHashiVaultOSMCertificateManager(t *testing.T) {
 	generator := &MRCProviderGenerator{
-		ServiceCertValidityDuration: 1 * time.Hour,
-		KeyBitSize:                  2048,
+		KeyBitSize: 2048,
 	}
 
 	opt := VaultOptions{
@@ -177,7 +141,7 @@ func TestGetHashiVaultOSMCertificateManager(t *testing.T) {
 				},
 			}
 
-			_, _, err := generator.getHashiVaultOSMCertificateManager(mrc)
+			_, err := generator.getHashiVaultOSMCertificateManager(mrc)
 			assert.Equal(tc.expErr, err != nil)
 		})
 	}
@@ -185,10 +149,9 @@ func TestGetHashiVaultOSMCertificateManager(t *testing.T) {
 
 func TestGetCertManagerOSMCertificateManager(t *testing.T) {
 	generator := &MRCProviderGenerator{
-		kubeClient:                  fake.NewSimpleClientset(),
-		kubeConfig:                  &rest.Config{},
-		ServiceCertValidityDuration: 1 * time.Hour,
-		KeyBitSize:                  2048,
+		kubeClient: fake.NewSimpleClientset(),
+		kubeConfig: &rest.Config{},
+		KeyBitSize: 2048,
 	}
 
 	opt := CertManagerOptions{
@@ -248,7 +211,7 @@ func TestGetCertManagerOSMCertificateManager(t *testing.T) {
 				assert.Nil(err)
 			}
 
-			_, _, err := generator.getCertManagerOSMCertificateManager(mrc)
+			_, err := generator.getCertManagerOSMCertificateManager(mrc)
 			assert.Equal(tc.expErr, err != nil)
 
 			if tc.createSecret {
