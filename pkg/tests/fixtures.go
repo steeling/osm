@@ -401,7 +401,7 @@ var (
 	}
 
 	// BookstoreServiceIdentity is the ServiceIdentity for the Bookstore service.
-	BookstoreServiceIdentity = BookstoreServiceAccount.ToServiceIdentity()
+	BookstoreServiceIdentity = BookstoreServiceAccount.ToServiceIdentity("cluster.local")
 
 	// BookstoreV2ServiceAccount is a namespaced service account.
 	BookstoreV2ServiceAccount = identity.K8sServiceAccount{
@@ -410,7 +410,7 @@ var (
 	}
 
 	// BookstoreV2ServiceIdentity is the ServiceIdentity for the Bokstore v2 service.
-	BookstoreV2ServiceIdentity = BookstoreV2ServiceAccount.ToServiceIdentity()
+	BookstoreV2ServiceIdentity = BookstoreV2ServiceAccount.ToServiceIdentity("cluster.local")
 
 	// BookbuyerServiceAccount is a namespaced bookbuyer account.
 	BookbuyerServiceAccount = identity.K8sServiceAccount{
@@ -419,7 +419,7 @@ var (
 	}
 
 	// BookbuyerServiceIdentity is the ServiceIdentity for the Bookbuyer service.
-	BookbuyerServiceIdentity = BookbuyerServiceAccount.ToServiceIdentity()
+	BookbuyerServiceIdentity = BookbuyerServiceAccount.ToServiceIdentity("cluster.local")
 
 	// HTTPRouteGroup is the HTTP route group SMI object.
 	HTTPRouteGroup = spec.HTTPRouteGroup{

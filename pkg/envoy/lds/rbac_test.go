@@ -30,10 +30,10 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 			name: "traffic target without TCP routes",
 			trafficTarget: trafficpolicy.TrafficTargetWithRoutes{
 				Name:        "ns-1/test-1",
-				Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+				Destination: identity.ServiceIdentityFromString("sa-1.ns-1.cluster.local"),
 				Sources: []identity.ServiceIdentity{
-					identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-					identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+					identity.ServiceIdentityFromString("sa-2.ns-2.cluster.local"),
+					identity.ServiceIdentityFromString("sa-3.ns-3.cluster.local"),
 				},
 				TCPRouteMatches: nil,
 			},
@@ -73,10 +73,10 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 			name: "traffic target with TCP routes",
 			trafficTarget: trafficpolicy.TrafficTargetWithRoutes{
 				Name:        "ns-1/test-1",
-				Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+				Destination: identity.ServiceIdentityFromString("sa-1.ns-1.cluster.local"),
 				Sources: []identity.ServiceIdentity{
-					identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-					identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+					identity.ServiceIdentityFromString("sa-2.ns-2.cluster.local"),
+					identity.ServiceIdentityFromString("sa-3.ns-3.cluster.local"),
 				},
 				TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
 					{
@@ -157,7 +157,7 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 
 	lb := &listenerBuilder{
 		meshCatalog:     mockCatalog,
-		serviceIdentity: proxySvcAccount.ToServiceIdentity(),
+		serviceIdentity: proxySvcAccount.ToServiceIdentity("cluster.local"),
 	}
 
 	testCases := []struct {
@@ -173,10 +173,10 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentityFromString("sa-1.ns-1.cluster.local"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+						identity.ServiceIdentityFromString("sa-2.ns-2.cluster.local"),
+						identity.ServiceIdentityFromString("sa-3.ns-3.cluster.local"),
 					},
 					TCPRouteMatches: nil,
 				},
@@ -193,17 +193,17 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentityFromString("sa-1.ns-1.cluster.local"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+						identity.ServiceIdentityFromString("sa-2.ns-2.cluster.local"),
+						identity.ServiceIdentityFromString("sa-3.ns-3.cluster.local"),
 					},
 				},
 				{
 					Name:        "ns-1/test-2",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentityFromString("sa-1.ns-1.cluster.local"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-4.ns-2.cluster.local"),
+						identity.ServiceIdentityFromString("sa-4.ns-2.cluster.local"),
 					},
 				},
 			},
@@ -218,7 +218,7 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 			assert := tassert.New(t)
 
 			// Mock catalog calls
-			mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(proxySvcAccount.ToServiceIdentity()).Return(tc.trafficTargets, nil).Times(1)
+			mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(proxySvcAccount.ToServiceIdentity("cluster.local")).Return(tc.trafficTargets, nil).Times(1)
 
 			// Test the RBAC policies
 			policy, err := lb.buildInboundRBACPolicies()
@@ -241,7 +241,7 @@ func TestBuildRBACFilter(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
-	proxySvcAccount := identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity()
+	proxySvcAccount := identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity("cluster.local")
 
 	lb := &listenerBuilder{
 		meshCatalog:     mockCatalog,
@@ -260,10 +260,10 @@ func TestBuildRBACFilter(t *testing.T) {
 			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentityFromString("sa-1.ns-1.cluster.local"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+						identity.ServiceIdentityFromString("sa-2.ns-2.cluster.local"),
+						identity.ServiceIdentityFromString("sa-3.ns-3.cluster.local"),
 					},
 					TCPRouteMatches: nil,
 				},
@@ -278,17 +278,17 @@ func TestBuildRBACFilter(t *testing.T) {
 			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentityFromString("sa-1.ns-1.cluster.local"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+						identity.ServiceIdentityFromString("sa-2.ns-2.cluster.local"),
+						identity.ServiceIdentityFromString("sa-3.ns-3.cluster.local"),
 					},
 				},
 				{
 					Name:        "ns-1/test-2",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentityFromString("sa-1.ns-1.cluster.local"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-4.ns-2.cluster.local"),
+						identity.ServiceIdentityFromString("sa-4.ns-2.cluster.local"),
 					},
 				},
 			},

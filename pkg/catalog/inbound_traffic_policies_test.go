@@ -27,7 +27,7 @@ import (
 
 func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 	upstreamSvcAccount := identity.K8sServiceAccount{Namespace: "ns1", Name: "sa1"}
-
+	trustDomain := "foo.local"
 	testCases := []struct {
 		name                      string
 		upstreamIdentity          identity.ServiceIdentity
@@ -42,7 +42,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 	}{
 		{
 			name:             "multiple services, SMI mode, 1 TrafficTarget, 1 HTTPRouteGroup, 0 TrafficSplit",
-			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(),
+			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(trustDomain),
 			upstreamServices: []service.MeshService{
 				{
 					Name:       "s1",
@@ -153,7 +153,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.ToServiceIdentity(trustDomain)),
 								},
 							},
 						},
@@ -192,7 +192,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.ToServiceIdentity(trustDomain)),
 								},
 							},
 						},
@@ -216,7 +216,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 		},
 		{
 			name:             "multiple services, statefulset, SMI mode, 1 TrafficTarget, 1 TCPRoute, 0 TrafficSplit",
-			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(),
+			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(trustDomain),
 			upstreamServices: []service.MeshService{
 				{
 					Name:       "mysql-0.mysql",
@@ -314,7 +314,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 		},
 		{
 			name:             "multiple services, SMI mode, 1 TrafficTarget, multiple HTTPRouteGroup, 0 TrafficSplit",
-			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(),
+			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(trustDomain),
 			upstreamServices: []service.MeshService{
 				{
 					Name:       "s1",
@@ -454,7 +454,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.ToServiceIdentity(trustDomain)),
 								},
 								{
 									Route: trafficpolicy.RouteWeightedClusters{
@@ -474,7 +474,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.ToServiceIdentity(trustDomain)),
 								},
 							},
 						},
@@ -513,7 +513,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.ToServiceIdentity(trustDomain)),
 								},
 								{
 									Route: trafficpolicy.RouteWeightedClusters{
@@ -533,7 +533,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.ToServiceIdentity(trustDomain)),
 								},
 							},
 						},
@@ -557,7 +557,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 		},
 		{
 			name:             "multiple services, SMI mode, 1 TrafficTarget, 1 HTTPRouteGroup, 1 TrafficSplit",
-			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(),
+			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(trustDomain),
 			upstreamServices: []service.MeshService{
 				{
 					Name:       "s1",
@@ -702,7 +702,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.ToServiceIdentity(trustDomain)),
 								},
 							},
 						},
@@ -739,7 +739,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.ToServiceIdentity(trustDomain)),
 								},
 							},
 						},
@@ -778,7 +778,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.ToServiceIdentity(trustDomain)),
 								},
 							},
 						},
@@ -808,7 +808,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 		},
 		{
 			name:             "multiple services, permissive mode, 1 TrafficSplit",
-			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(),
+			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(trustDomain),
 			upstreamServices: []service.MeshService{
 				{
 					Name:       "s1",
@@ -979,7 +979,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 		{
 			name: "multiple services with different protocol, SMI mode, 1 TrafficTarget, 1 HTTPRouteGroup, 0 TrafficSplit",
 			// Ports ns1/s2:90 and ns1/s3:91 use TCP, so HTTP route configs for them should not be built
-			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(),
+			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(trustDomain),
 			upstreamServices: []service.MeshService{
 				{
 					Name:       "s1",
@@ -1097,7 +1097,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.ToServiceIdentity(trustDomain)),
 								},
 							},
 						},
@@ -1130,7 +1130,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			// This test configures multiple TrafficTarget resources with the same route that different downstream clients are
 			// allowed to access. The test verifies that routing rules with the same route are correctly merged to a single routing
 			// rule with merged downstream client identities.
-			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(),
+			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(trustDomain),
 			upstreamServices: []service.MeshService{
 				{
 					Name:       "s1",
@@ -1269,11 +1269,11 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 										identity.K8sServiceAccount{
 											Name:      "sa2",
 											Namespace: "ns2",
-										}.ToServiceIdentity(),
+										}.ToServiceIdentity(trustDomain),
 										identity.K8sServiceAccount{
 											Name:      "sa3",
 											Namespace: "ns3",
-										}.ToServiceIdentity()),
+										}.ToServiceIdentity(trustDomain)),
 								},
 							},
 						},
@@ -1313,11 +1313,11 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 										identity.K8sServiceAccount{
 											Name:      "sa2",
 											Namespace: "ns2",
-										}.ToServiceIdentity(),
+										}.ToServiceIdentity(trustDomain),
 										identity.K8sServiceAccount{
 											Name:      "sa3",
 											Namespace: "ns3",
-										}.ToServiceIdentity()),
+										}.ToServiceIdentity(trustDomain)),
 								},
 							},
 						},
@@ -1343,7 +1343,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			name: "multiple services, SMI mode, 1 TrafficTarget, 1 HTTPRouteGroup, 1 TrafficSplit with backend same as apex",
 			// This test configures a TrafficSplit where the backend service is the same as the apex. This is a supported
 			// SMI configuration and mimics the e2e test e2e_trafficsplit_recursive_split.go.
-			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(),
+			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(trustDomain),
 			upstreamServices: []service.MeshService{
 				{
 					Name:       "s1",
@@ -1484,7 +1484,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.ToServiceIdentity(trustDomain)),
 								},
 							},
 						},
@@ -1523,7 +1523,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.ToServiceIdentity(trustDomain)),
 								},
 							},
 						},
@@ -1547,7 +1547,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 		},
 		{
 			name:             "multiple services, permissive mode, 1 TrafficSplit, MeshService is apex for another MeshService",
-			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(),
+			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(trustDomain),
 			upstreamServices: []service.MeshService{
 				{
 					Name:       "s1",

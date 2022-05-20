@@ -442,7 +442,7 @@ func TestNewResponseListServicesError(t *testing.T) {
 }
 
 func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
-	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()
+	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity("cluster.local")
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
 	}), nil)
@@ -471,7 +471,7 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 }
 
 func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
-	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()
+	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity("cluster.local")
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
 	}), nil)

@@ -321,7 +321,7 @@ func getCertificateCommonNameMeta(cn certificate.CommonName) (*certificateCommon
 	return &certificateCommonNameMeta{
 		ProxyUUID:       proxyUUID,
 		ProxyKind:       ProxyKind(chunks[1]),
-		ServiceIdentity: identity.ServiceIdentity(chunks[2]),
+		ServiceIdentity: identity.ServiceIdentityFromString(chunks[2]),
 	}, nil
 }
 
@@ -389,7 +389,7 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Control
 func GetServiceIdentityFromProxyCertificate(cn certificate.CommonName) (identity.ServiceIdentity, error) {
 	cnMeta, err := getCertificateCommonNameMeta(cn)
 	if err != nil {
-		return "", err
+		return identity.ServiceIdentity{}, err
 	}
 
 	return cnMeta.ServiceIdentity, nil

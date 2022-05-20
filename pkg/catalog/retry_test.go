@@ -38,7 +38,7 @@ func TestGetRetryPolicy(t *testing.T) {
 		policyController:   mockPolicyController,
 		kubeController:     mockKubeController,
 	}
-	retrySrc := identity.ServiceIdentity("sa1.ns.cluster.local")
+	retrySrc := identity.ServiceIdentityFromString("sa1.ns.cluster.local")
 
 	testcases := []struct {
 		name                string

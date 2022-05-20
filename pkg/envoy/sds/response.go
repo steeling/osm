@@ -44,7 +44,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 	log.Info().Str("proxy", proxy.String()).Msgf("Creating SDS response for request for resources %v", requestedCerts)
 
 	// 1. Issue a service certificate for this proxy
-	cert, err := certManager.IssueCertificate(certificate.CommonName(s.serviceIdentity), cfg.GetServiceCertValidityPeriod())
+	cert, err := certManager.IssueCertificate(certificate.CommonName(s.serviceIdentity.String()), cfg.GetServiceCertValidityPeriod())
 	if err != nil {
 		log.Error().Err(err).Str("proxy", proxy.String()).Msgf("Error issuing a certificate for proxy")
 		return nil, err
@@ -190,7 +190,7 @@ func getServiceIdentitiesFromCert(sdscert secrets.SDSCert, serviceIdentity ident
 			return nil, err
 		}
 
-		if svcAccountInRequest.ToServiceIdentity() != serviceIdentity {
+		if svcAccountInRequest.ToServiceIdentity(meshCatalog.GetTrustDomain()) != serviceIdentity {
 			log.Error().Err(errCertMismatch).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrSDSCertMismatch)).
 				Msgf("Request for SDS cert %s does not belong to proxy with identity %s", sdscert.Name, serviceIdentity)
 			return nil, errCertMismatch

@@ -18,12 +18,12 @@ func TestGetKubernetesServiceIdentity(t *testing.T) {
 		{
 			K8sServiceAccount{Name: "foo", Namespace: "bar"},
 			"cluster.local",
-			ServiceIdentity("foo.bar.cluster.local"),
+			ServiceIdentityFromString("foo.bar.cluster.local"),
 		},
 		{
 			K8sServiceAccount{Name: "foo", Namespace: "bar"},
 			"cluster.baz",
-			ServiceIdentity("foo.bar.cluster.baz"),
+			ServiceIdentityFromString("foo.bar.cluster.baz"),
 		},
 	}
 
@@ -36,5 +36,5 @@ func TestGetKubernetesServiceIdentity(t *testing.T) {
 		})
 	}
 
-	assert.Equal(ServiceIdentity("foo").String(), "foo")
+	assert.Equal(ServiceIdentityFromString("foo").String(), "foo")
 }

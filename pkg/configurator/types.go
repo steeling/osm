@@ -106,4 +106,7 @@ type Configurator interface {
 
 	// GetFeatureFlags returns OSM's feature flags
 	GetFeatureFlags() configv1alpha2.FeatureFlags
+
+	// GetTrustDomain returns the current trust domain
+	GetTrustDomain() string
 }

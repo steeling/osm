@@ -162,7 +162,7 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 				Namespace: t.Spec.Destination.Namespace,
 			}
 
-			for _, destService := range mc.getServicesForServiceIdentity(sa.ToServiceIdentity()) {
+			for _, destService := range mc.getServicesForServiceIdentity(sa.ToServiceIdentity(mc.GetTrustDomain())) {
 				if added := serviceSet.Add(destService); added {
 					allowedServices = append(allowedServices, destService)
 				}
@@ -179,7 +179,7 @@ func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *access.Traffic
 		Name:      t.Spec.Destination.Name,
 		Namespace: t.Spec.Destination.Namespace,
 	}
-	return mc.getServicesForServiceIdentity(sa.ToServiceIdentity())
+	return mc.getServicesForServiceIdentity(sa.ToServiceIdentity(mc.GetTrustDomain()))
 }
 
 // listAllowedUpstreamServicesIncludeApex returns a list of services the given downstream service identity

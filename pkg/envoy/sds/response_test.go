@@ -81,6 +81,7 @@ func TestGetRootCert(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
+	trustDomain := "test-domain.com"
 
 	// This is used to dynamically set expectations for each test in the list of table driven tests
 	type dynamicMock struct {
@@ -107,7 +108,7 @@ func TestGetRootCert(t *testing.T) {
 				Name:     "ns-1/sa-1",
 				CertType: secrets.RootCertTypeForMTLSInbound,
 			},
-			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
+			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(trustDomain),
 
 			prepare: func(d *dynamicMock) {},
 
@@ -124,12 +125,12 @@ func TestGetRootCert(t *testing.T) {
 				Name:     "ns-2/service-2",
 				CertType: secrets.RootCertTypeForMTLSOutbound,
 			},
-			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
+			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(trustDomain),
 
 			prepare: func(d *dynamicMock) {
 				associatedSvcAccounts := []identity.ServiceIdentity{
-					identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-2"}.ToServiceIdentity(),
-					identity.K8sServiceAccount{Name: "sa-3", Namespace: "ns-2"}.ToServiceIdentity(),
+					identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-2"}.ToServiceIdentity(trustDomain),
+					identity.K8sServiceAccount{Name: "sa-3", Namespace: "ns-2"}.ToServiceIdentity(trustDomain),
 				}
 				d.mockCatalog.EXPECT().ListServiceIdentitiesForService(service.MeshService{
 					Name:      "service-2",
@@ -234,6 +235,8 @@ func TestGetSDSSecrets(t *testing.T) {
 		t.Error(err)
 	}
 
+	trustDomain := "test-domain.com"
+
 	cert := &certificate.Certificate{
 		CertChain:  []byte("foo"),
 		PrivateKey: []byte("foo"),
@@ -268,7 +271,7 @@ func TestGetSDSSecrets(t *testing.T) {
 		// Test case 1: root-cert-for-mtls-inbound requested -------------------------------
 		{
 			name:            "test root-cert-for-mtls-inbound cert type request",
-			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
+			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(trustDomain),
 
 			prepare: func(d *dynamicMock) {},
 
@@ -284,12 +287,12 @@ func TestGetSDSSecrets(t *testing.T) {
 		// Test case 2: root-cert-for-mtls-outbound requested -------------------------------
 		{
 			name:            "test root-cert-for-mtls-outbound cert type request",
-			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
+			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(trustDomain),
 
 			prepare: func(d *dynamicMock) {
 				associatedSvcAccounts := []identity.ServiceIdentity{
-					identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-2"}.ToServiceIdentity(),
-					identity.K8sServiceAccount{Name: "sa-3", Namespace: "ns-2"}.ToServiceIdentity(),
+					identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-2"}.ToServiceIdentity(trustDomain),
+					identity.K8sServiceAccount{Name: "sa-3", Namespace: "ns-2"}.ToServiceIdentity(trustDomain),
 				}
 				svc := service.MeshService{
 					Name:      "service-2",
@@ -310,7 +313,7 @@ func TestGetSDSSecrets(t *testing.T) {
 		// Test case 3: service-cert requested -------------------------------
 		{
 			name:            "test service-cert cert type request",
-			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
+			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(trustDomain),
 
 			prepare: func(d *dynamicMock) {},
 
@@ -326,7 +329,7 @@ func TestGetSDSSecrets(t *testing.T) {
 		// Test case 4: invalid cert type requested -------------------------------
 		{
 			name:            "test invalid cert type request",
-			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
+			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(trustDomain),
 
 			prepare: nil,
 
@@ -405,12 +408,13 @@ func TestGetSubjectAltNamesFromSvcAccount(t *testing.T) {
 		serviceIdentities   []identity.ServiceIdentity
 		expectedSANMatchers []*xds_matcher.StringMatcher
 	}
+	trustDomain := "test-domain.com"
 
 	testCases := []testCase{
 		{
 			serviceIdentities: []identity.ServiceIdentity{
-				identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
-				identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-2"}.ToServiceIdentity(),
+				identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(trustDomain),
+				identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-2"}.ToServiceIdentity(trustDomain),
 			},
 			expectedSANMatchers: []*xds_matcher.StringMatcher{
 				{

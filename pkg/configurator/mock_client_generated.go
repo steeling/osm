@@ -359,3 +359,17 @@ func (mr *MockConfiguratorMockRecorder) IsTracingEnabled() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsTracingEnabled", reflect.TypeOf((*MockConfigurator)(nil).IsTracingEnabled))
 }
+
+// ListInboundServiceIdentities mocks base method.
+func (m *MockConfigurator) GetTrustDomain() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTrustDomain")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetTrustDomain indicates an expected call of GetTrustDomain.
+func (mr *MockConfiguratorMockRecorder) GetTrustDomain() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrustDomain", reflect.TypeOf((*MockConfigurator)(nil).GetTrustDomain))
+}

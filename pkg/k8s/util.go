@@ -35,6 +35,7 @@ func GetHostnamesForService(svc service.MeshService, localNamespace bool) []stri
 		fmt.Sprintf("%s.%s.svc.cluster.local:%d", svc.Name, svc.Namespace, svc.Port), // service.namespace.svc.cluster.local:port
 	}...)
 
+	// TODO: steeling, may need to change/add custom trust domain
 	return hostnames
 }
 

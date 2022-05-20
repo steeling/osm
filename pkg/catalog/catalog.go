@@ -42,3 +42,8 @@ func NewMeshCatalog(kubeController k8s.Controller, meshSpec smi.MeshSpec, certMa
 func (mc *MeshCatalog) GetKubeController() k8s.Controller {
 	return mc.kubeController
 }
+
+func (mc *MeshCatalog) GetTrustDomain() string {
+	// TODO: steeling
+	return mc.configurator.GetTrustDomain()
+}

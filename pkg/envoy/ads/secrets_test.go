@@ -30,7 +30,7 @@ func TestMakeRequestForAllSecrets(t *testing.T) {
 		expectedDiscoveryRequest *xds_discovery.DiscoveryRequest
 	}
 
-	proxyServiceIdentity := identity.K8sServiceAccount{Name: "test-sa", Namespace: "ns-1"}.ToServiceIdentity()
+	proxyServiceIdentity := identity.K8sServiceAccount{Name: "test-sa", Namespace: "ns-1"}.ToServiceIdentity("cluster.local")
 	proxySvcAccount := proxyServiceIdentity.ToK8sServiceAccount()
 	certSerialNumber := certificate.SerialNumber("123456")
 	proxyXDSCertCN := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace)

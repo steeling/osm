@@ -83,7 +83,7 @@ func (f fakeClient) ListServiceIdentitiesForService(svc service.MeshService) []i
 	var serviceIdentities []identity.ServiceIdentity
 
 	for svcID := range f.services {
-		serviceIdentities = append(serviceIdentities, svcID.ToServiceIdentity())
+		serviceIdentities = append(serviceIdentities, svcID.ToServiceIdentity("cluster.local"))
 	}
 	return serviceIdentities
 }

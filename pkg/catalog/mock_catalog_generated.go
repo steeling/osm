@@ -208,3 +208,17 @@ func (mr *MockMeshCatalogerMockRecorder) ListServiceIdentitiesForService(arg0 in
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceIdentitiesForService", reflect.TypeOf((*MockMeshCataloger)(nil).ListServiceIdentitiesForService), arg0)
 }
+
+// ListInboundServiceIdentities mocks base method.
+func (m *MockMeshCataloger) GetTrustDomain() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTrustDomain")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetTrustDomain indicates an expected call of GetTrustDomain.
+func (mr *MockMeshCatalogerMockRecorder) GetTrustDomain() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrustDomain", reflect.TypeOf((*MockMeshCataloger)(nil).GetTrustDomain))
+}

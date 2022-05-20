@@ -23,11 +23,13 @@ func TestBuildMulticlusterGatewayListeners(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
+	trustDomain := "cluster.test"
+
 	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
 
-	id := identity.K8sServiceAccount{Name: "osm", Namespace: "osm-system"}.ToServiceIdentity()
+	id := identity.K8sServiceAccount{Name: "osm", Namespace: "osm-system"}.ToServiceIdentity(trustDomain)
 	meshServices := []service.MeshService{
 		tests.BookstoreV1Service,
 		tests.BookstoreV2Service,

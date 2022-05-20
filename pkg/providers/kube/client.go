@@ -227,7 +227,7 @@ func (c *client) ListServiceIdentitiesForService(svc service.MeshService) []iden
 
 	var serviceIdentities []identity.ServiceIdentity
 	for _, svcAccount := range serviceAccounts {
-		serviceIdentity := svcAccount.ToServiceIdentity()
+		serviceIdentity := svcAccount.ToServiceIdentity(c.meshConfigurator.GetTrustDomain())
 		serviceIdentities = append(serviceIdentities, serviceIdentity)
 	}
 

@@ -28,6 +28,7 @@ import (
 )
 
 func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
+	trustDomain := "cluster.local"
 	//---
 	// Create MeshServices used by the test. We test both explicit protocol specification and defaults here.
 	// MeshService for k8s service ns1/s1 with 2 ports
@@ -81,7 +82,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 		"sa3.ns3.cluster.local": {meshSvc3, meshSvc3V1, meshSvc3V2, meshSvc4, meshSvc5},
 	}
 
-	downstreamIdentity := identity.ServiceIdentity("sa-x.ns1.cluster.local")
+	downstreamIdentity := identity.ServiceIdentityFromString("sa-x.ns1.cluster.local")
 
 	// TrafficTargets that allow: sa-x.ns1 -> sa1.ns1, sa3.ns3
 	// No TrafficTarget that allows sa-x.ns1 -> sa2.ns2 (this should be allowed in permissive mode)
@@ -619,7 +620,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			// Mock ServiceIdentity -> Service lookups executed when TrafficTargets are evaluated
 			if !tc.permissiveMode {
 				for _, target := range trafficTargets {
-					dstSvcIdentity := identity.K8sServiceAccount{Namespace: target.Spec.Destination.Namespace, Name: target.Spec.Destination.Name}.ToServiceIdentity()
+					dstSvcIdentity := identity.K8sServiceAccount{Namespace: target.Spec.Destination.Namespace, Name: target.Spec.Destination.Name}.ToServiceIdentity(trustDomain)
 					mockServiceProvider.EXPECT().GetServicesForServiceIdentity(dstSvcIdentity).Return(svcIdentityToSvcMapping[dstSvcIdentity.String()]).AnyTimes()
 				}
 			} else {
@@ -662,6 +663,8 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 func TestListOutboundServicesForIdentity(t *testing.T) {
 	assert := tassert.New(t)
 
+	trustDomain := "cluster.local"
+
 	testCases := []struct {
 		name           string
 		svcIdentity    identity.ServiceIdentity
@@ -679,7 +682,7 @@ func TestListOutboundServicesForIdentity(t *testing.T) {
 			svcIdentity: identity.K8sServiceAccount{
 				Name:      "some-name",
 				Namespace: "some-ns",
-			}.ToServiceIdentity(),
+			}.ToServiceIdentity(trustDomain),
 			expectedList:   nil,
 			permissiveMode: false,
 		},
@@ -691,7 +694,7 @@ func TestListOutboundServicesForIdentity(t *testing.T) {
 		},
 		{
 			name:           "gateway",
-			svcIdentity:    "gateway.osm-system.cluster.local",
+			svcIdentity:    identity.ServiceIdentityFromString("gateway.osm-system.cluster.local"),
 			expectedList:   []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService, tests.BookbuyerService},
 			permissiveMode: true,
 		},
@@ -733,8 +736,10 @@ func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
 		Namespace: "bookstore-ns",
 	}
 
+	trustDomain := "cluster.local"
+
 	destK8sService := tests.NewServiceFixture(destMeshService.Name, destMeshService.Namespace, map[string]string{})
-	mockServiceProvider.EXPECT().GetServicesForServiceIdentity(destSA.ToServiceIdentity()).Return([]service.MeshService{destMeshService}).AnyTimes()
+	mockServiceProvider.EXPECT().GetServicesForServiceIdentity(destSA.ToServiceIdentity(trustDomain)).Return([]service.MeshService{destMeshService}).AnyTimes()
 	mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
 	mockServiceProvider.EXPECT().GetID().Return("fake").AnyTimes()
 	mockKubeController.EXPECT().GetService(destMeshService).Return(destK8sService).AnyTimes()
@@ -777,12 +782,12 @@ func TestListAllowedUpstreamServicesIncludeApex(t *testing.T) {
 	}{
 		{
 			name:     "no allowed outbound services",
-			id:       "foo.bar",
+			id:       identity.ServiceIdentityFromString("foo.bar"),
 			expected: nil,
 		},
 		{
 			name: "some allowed service",
-			id:   "my-src-ns.my-src-name",
+			id:   identity.ServiceIdentityFromString("my-src-ns.my-src-name"),
 			services: []*corev1.Service{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -868,7 +873,7 @@ func TestListAllowedUpstreamServicesIncludeApex(t *testing.T) {
 		},
 		{
 			name:           "TrafficSplit apex service should not have duplicate when it does not have endpoints",
-			id:             "my-src-ns.my-src-name",
+			id:             identity.ServiceIdentityFromString("my-src-ns.my-src-name"),
 			foundNamespace: true,
 			services: []*corev1.Service{
 				{

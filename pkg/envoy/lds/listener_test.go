@@ -175,7 +175,7 @@ func TestGetFilterMatchPredicateForTrafficMatches(t *testing.T) {
 
 func TestNewOutboundListener(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
-	identity := identity.K8sServiceAccount{}.ToServiceIdentity()
+	identity := identity.K8sServiceAccount{}.ToServiceIdentity("cluster.local")
 	meshCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 	meshCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).Times(1)
 	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(identity).Return(&trafficpolicy.OutboundMeshTrafficPolicy{

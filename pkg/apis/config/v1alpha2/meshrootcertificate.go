@@ -29,7 +29,8 @@ type MeshRootCertificate struct {
 // MeshRootCertificateSpec defines the mesh root certificate specification
 type MeshRootCertificateSpec struct {
 	// Provider specifies the mesh certificate provider
-	Provider ProviderSpec `json:"provider"`
+	Provider    ProviderSpec `json:"provider"`
+	TrustDomain string       `json:"trustDomain"`
 }
 
 // ProviderSpec defines the certificate provider used by the mesh control plane

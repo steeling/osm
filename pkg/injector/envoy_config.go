@@ -149,6 +149,7 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 		XDSClusterName: constants.OSMControllerName,
 		NodeID:         cert.GetCommonName().String(),
 
+		// TODO: steeling, may need to change this
 		XDSHost: fmt.Sprintf("%s.%s.svc.cluster.local", constants.OSMControllerName, osmNamespace),
 		XDSPort: constants.ADSServerPort,
 

@@ -75,6 +75,9 @@ type MeshCataloger interface {
 
 	// GetInboundMeshTrafficPolicy returns the inbound mesh traffic policy for the given upstream identity and services
 	GetInboundMeshTrafficPolicy(identity.ServiceIdentity, []service.MeshService) *trafficpolicy.InboundMeshTrafficPolicy
+
+	// GetTrustDomain returns the trust domain, ie: "cluster.local"
+	GetTrustDomain() string
 }
 
 type trafficDirection string

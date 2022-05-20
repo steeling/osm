@@ -35,6 +35,7 @@ var (
 )
 
 func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
+	trustDomain := "test.trust.domain"
 	testCases := []struct {
 		name                      string
 		inbound                   *trafficpolicy.InboundMeshTrafficPolicy
@@ -172,14 +173,14 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 								HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 							},
-							AllowedServiceIdentities: mapset.NewSet(tests.BookbuyerServiceAccount.ToServiceIdentity()),
+							AllowedServiceIdentities: mapset.NewSet(tests.BookbuyerServiceAccount.ToServiceIdentity(trustDomain)),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
 								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 							},
-							AllowedServiceIdentities: mapset.NewSet(tests.BookbuyerServiceAccount.ToServiceIdentity()),
+							AllowedServiceIdentities: mapset.NewSet(tests.BookbuyerServiceAccount.ToServiceIdentity(trustDomain)),
 						},
 					},
 				},
@@ -337,6 +338,7 @@ func TestBuildVirtualHostStub(t *testing.T) {
 	}
 }
 func TestBuildInboundRoutes(t *testing.T) {
+	trustDomain := "test.com"
 	testWeightedCluster := service.WeightedCluster{
 		ClusterName: "default/testCluster|80|local",
 		Weight:      100,
@@ -360,7 +362,7 @@ func TestBuildInboundRoutes(t *testing.T) {
 						WeightedClusters: mapset.NewSet(testWeightedCluster),
 					},
 					AllowedServiceIdentities: mapset.NewSetFromSlice(
-						[]interface{}{identity.K8sServiceAccount{Name: "foo", Namespace: "bar"}.ToServiceIdentity()},
+						[]interface{}{identity.K8sServiceAccount{Name: "foo", Namespace: "bar"}.ToServiceIdentity(trustDomain)},
 					),
 				},
 			},

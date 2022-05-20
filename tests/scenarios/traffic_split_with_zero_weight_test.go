@@ -38,6 +38,7 @@ import (
 func TestRDSRespose(t *testing.T) {
 	assert := tassert.New(t)
 
+	trustDomain := "test.com"
 	testCases := []struct {
 		name                     string
 		downstreamSA             identity.ServiceIdentity
@@ -130,7 +131,7 @@ func TestRDSRespose(t *testing.T) {
 							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}.ToServiceIdentity()),
+							}.ToServiceIdentity(trustDomain)),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
@@ -143,7 +144,7 @@ func TestRDSRespose(t *testing.T) {
 							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}.ToServiceIdentity()),
+							}.ToServiceIdentity(trustDomain)),
 						},
 					},
 				},
@@ -173,7 +174,7 @@ func TestRDSRespose(t *testing.T) {
 							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}.ToServiceIdentity()),
+							}.ToServiceIdentity(trustDomain)),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
@@ -186,7 +187,7 @@ func TestRDSRespose(t *testing.T) {
 							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}.ToServiceIdentity()),
+							}.ToServiceIdentity(trustDomain)),
 						},
 					},
 				},

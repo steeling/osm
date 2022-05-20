@@ -719,12 +719,13 @@ func (v *EnvoyConfigVerifier) findTLSSecretsOnSource(secrets []*xds_secret.Secre
 	// Look for 2 secrets:
 	// 1. Client TLS secret (based on client's ServiceAccount)
 	// 2. Upstream peer validation secret (based on upstream service)
+	trustDomain := "cluster.local"
 	srcPod := v.configAttr.trafficAttr.SrcPod
 	pod, err := v.kubeClient.CoreV1().Pods(srcPod.Namespace).Get(context.Background(), srcPod.Name, metav1.GetOptions{})
 	if err != nil {
 		return errors.Errorf("pod %s not found", srcPod)
 	}
-	downstreamIdentity := identity.K8sServiceAccount{Namespace: pod.Namespace, Name: pod.Spec.ServiceAccountName}.ToServiceIdentity()
+	downstreamIdentity := identity.K8sServiceAccount{Namespace: pod.Namespace, Name: pod.Spec.ServiceAccountName}.ToServiceIdentity(trustDomain)
 	downstreamSecretName := envoySecrets.SDSCert{
 		Name:     envoySecrets.GetSecretNameForIdentity(downstreamIdentity),
 		CertType: envoySecrets.ServiceCertType,
@@ -752,11 +753,12 @@ func (v *EnvoyConfigVerifier) findTLSSecretsOnDestination(secrets []*xds_secret.
 	// 1. Server TLS secret (based on upstream ServiceAccount)
 	// 2. Downstream peer validation secret (based on upstream ServiceAccount)
 	dstPod := v.configAttr.trafficAttr.DstPod
+	trustDomain := "cluster.local"
 	pod, err := v.kubeClient.CoreV1().Pods(dstPod.Namespace).Get(context.Background(), dstPod.Name, metav1.GetOptions{})
 	if err != nil {
 		return errors.Errorf("pod %s not found", dstPod)
 	}
-	upstreamIdentity := identity.K8sServiceAccount{Namespace: pod.Namespace, Name: pod.Spec.ServiceAccountName}.ToServiceIdentity()
+	upstreamIdentity := identity.K8sServiceAccount{Namespace: pod.Namespace, Name: pod.Spec.ServiceAccountName}.ToServiceIdentity(trustDomain)
 	upstreamSecretName := envoySecrets.SDSCert{
 		Name:     envoySecrets.GetSecretNameForIdentity(upstreamIdentity),
 		CertType: envoySecrets.ServiceCertType,

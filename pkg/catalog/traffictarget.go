@@ -34,7 +34,7 @@ func (mc *MeshCatalog) ListInboundTrafficTargetsWithRoutes(upstream identity.Ser
 	}
 
 	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
-		destinationSvcIdentity := trafficTargetIdentityToSvcAccount(t.Spec.Destination).ToServiceIdentity()
+		destinationSvcIdentity := trafficTargetIdentityToSvcAccount(t.Spec.Destination).ToServiceIdentity(mc.GetTrustDomain())
 		if destinationSvcIdentity != upstream {
 			continue
 		}
@@ -124,7 +124,7 @@ func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcIdentity identity
 
 	var allowedSvcIdentities []identity.ServiceIdentity
 	for svcAccount := range allowed.Iter() {
-		allowedSvcIdentities = append(allowedSvcIdentities, svcAccount.(identity.K8sServiceAccount).ToServiceIdentity())
+		allowedSvcIdentities = append(allowedSvcIdentities, svcAccount.(identity.K8sServiceAccount).ToServiceIdentity(mc.GetTrustDomain()))
 	}
 
 	return allowedSvcIdentities

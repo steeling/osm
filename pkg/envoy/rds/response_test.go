@@ -39,6 +39,7 @@ import (
 func TestNewResponse(t *testing.T) {
 	assert := tassert.New(t)
 
+	trustDomain := "test.com"
 	testCases := []struct {
 		name                     string
 		downstreamSA             identity.ServiceIdentity
@@ -119,7 +120,7 @@ func TestNewResponse(t *testing.T) {
 								},
 								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 							},
-							AllowedServiceIdentities: mapset.NewSet(tests.BookstoreServiceAccount.ToServiceIdentity()),
+							AllowedServiceIdentities: mapset.NewSet(tests.BookstoreServiceAccount.ToServiceIdentity(trustDomain)),
 						},
 					},
 				},
@@ -136,7 +137,7 @@ func TestNewResponse(t *testing.T) {
 								},
 								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 							},
-							AllowedServiceIdentities: mapset.NewSet(tests.BookstoreServiceAccount.ToServiceIdentity()),
+							AllowedServiceIdentities: mapset.NewSet(tests.BookstoreServiceAccount.ToServiceIdentity(trustDomain)),
 						},
 					},
 				},
@@ -169,7 +170,7 @@ func TestNewResponse(t *testing.T) {
 								AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      tests.BookbuyerServiceAccountName,
 									Namespace: tests.Namespace,
-								}.ToServiceIdentity()),
+								}.ToServiceIdentity(trustDomain)),
 							},
 							{
 								Route: trafficpolicy.RouteWeightedClusters{
@@ -182,7 +183,7 @@ func TestNewResponse(t *testing.T) {
 								AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      tests.BookbuyerServiceAccountName,
 									Namespace: tests.Namespace,
-								}.ToServiceIdentity()),
+								}.ToServiceIdentity(trustDomain)),
 							},
 						},
 					},
@@ -212,7 +213,7 @@ func TestNewResponse(t *testing.T) {
 								AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      tests.BookbuyerServiceAccountName,
 									Namespace: tests.Namespace,
-								}.ToServiceIdentity()),
+								}.ToServiceIdentity(trustDomain)),
 							},
 							{
 								Route: trafficpolicy.RouteWeightedClusters{
@@ -225,7 +226,7 @@ func TestNewResponse(t *testing.T) {
 								AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      tests.BookbuyerServiceAccountName,
 									Namespace: tests.Namespace,
-								}.ToServiceIdentity()),
+								}.ToServiceIdentity(trustDomain)),
 							},
 						},
 					},

@@ -13,14 +13,28 @@ const (
 
 // ServiceIdentity is the type used to represent the identity for a service
 // For Kubernetes services this string will be in the format: <ServiceAccount>.<Namespace>.cluster.local
-type ServiceIdentity string
+type ServiceIdentity struct {
+	Name        string
+	Namespace   string
+	TrustDomain string
+}
+
+func ServiceIdentityFromString(si string) ServiceIdentity {
+	name, remainder, _ := strings.Cut(si, ".")
+	namespace, trustDomain, _ := strings.Cut(remainder, ".")
+	return ServiceIdentity{
+		Name:        name,
+		Namespace:   namespace,
+		TrustDomain: trustDomain,
+	}
+}
 
 // WildcardServiceIdentity is a wildcard to match all service identities
-const WildcardServiceIdentity ServiceIdentity = "*"
+var WildcardServiceIdentity = ServiceIdentity{Name: "*"}
 
 // String returns the ServiceIdentity as a string
 func (si ServiceIdentity) String() string {
-	return string(si)
+	return strings.Join([]string{si.Name, si.Namespace, si.TrustDomain}, namespaceNameSeparator)
 }
 
 // IsWildcard determines if the ServiceIdentity is a wildcard
@@ -30,14 +44,9 @@ func (si ServiceIdentity) IsWildcard() bool {
 
 // ToK8sServiceAccount converts a ServiceIdentity to a K8sServiceAccount to help with transition from K8sServiceAccount to ServiceIdentity
 func (si ServiceIdentity) ToK8sServiceAccount() K8sServiceAccount {
-	// By convention as of release-v0.8 ServiceIdentity is in the format: <ServiceAccount>.<Namespace>.cluster.local
-	// We can split by "." and will have service account in the first position and namespace in the second.
-	chunks := strings.Split(si.String(), ".")
-	name := chunks[0]
-	namespace := chunks[1]
 	return K8sServiceAccount{
-		Namespace: namespace,
-		Name:      name,
+		Namespace: si.Namespace,
+		Name:      si.Name,
 	}
 }
 
@@ -54,6 +63,10 @@ func (sa K8sServiceAccount) String() string {
 
 // ToServiceIdentity converts K8sServiceAccount to the newer ServiceIdentity
 // TODO(draychev): ToServiceIdentity is used in many places to ease with transition from K8sServiceAccount to ServiceIdentity and should be removed (not everywhere) - [https://github.com/openservicemesh/osm/issues/2218]
-func (sa K8sServiceAccount) ToServiceIdentity() ServiceIdentity {
-	return ServiceIdentity(fmt.Sprintf("%s.%s.%s", sa.Name, sa.Namespace, ClusterLocalTrustDomain))
+func (sa K8sServiceAccount) ToServiceIdentity(trustDomain string) ServiceIdentity {
+	return ServiceIdentity{
+		Name:        sa.Name,
+		Namespace:   sa.Namespace,
+		TrustDomain: trustDomain,
+	}
 }

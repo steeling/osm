@@ -101,7 +101,7 @@ var _ = Describe("Test Envoy tools", func() {
 	Context("Test GetDownstreamTLSContext()", func() {
 		It("should return TLS context", func() {
 			svcAccount := identity.K8sServiceAccount{Name: "foo", Namespace: "test"}
-			tlsContext := GetDownstreamTLSContext(svcAccount.ToServiceIdentity(), true, sidecarSpec)
+			tlsContext := GetDownstreamTLSContext(svcAccount.ToServiceIdentity("cluster.local"), true, sidecarSpec)
 
 			expectedTLSContext := &auth.DownstreamTlsContext{
 				CommonTlsContext: &auth.CommonTlsContext{

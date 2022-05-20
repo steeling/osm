@@ -88,6 +88,7 @@ func (c *client) GetTracingHost() string {
 	if tracingAddress != "" {
 		return tracingAddress
 	}
+	// TODO: steeling, likely need to change this.
 	return fmt.Sprintf("%s.%s.svc.cluster.local", constants.DefaultTracingHost, c.GetOSMNamespace())
 }
 

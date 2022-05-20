@@ -159,7 +159,7 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 										Weight:      100,
 									}),
 								},
-								AllowedServiceIdentities: mapset.NewSet(identity.ServiceIdentity("ingressGw.ingressGwNs.cluster.local")),
+								AllowedServiceIdentities: mapset.NewSet(identity.ServiceIdentityFromString("ingressGw.ingressGwNs.cluster.local")),
 							},
 						},
 					},

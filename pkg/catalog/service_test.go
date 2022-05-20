@@ -21,6 +21,8 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 		serviceProviders: []service.Provider{mockServiceProvider},
 	}
 
+	trustDomain := "cluster.local"
+
 	testCases := []struct {
 		svc                 service.MeshService
 		expectedSvcAccounts []identity.ServiceIdentity
@@ -28,15 +30,15 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 		{
 			service.MeshService{Name: "foo", Namespace: "ns-1"},
 			[]identity.ServiceIdentity{
-				identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
-				identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-1"}.ToServiceIdentity(),
+				identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(trustDomain),
+				identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-1"}.ToServiceIdentity(trustDomain),
 			},
 		},
 		{
 			service.MeshService{Name: "foo", Namespace: "ns-1"},
 			[]identity.ServiceIdentity{
-				identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
-				identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-1"}.ToServiceIdentity(),
+				identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(trustDomain),
+				identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-1"}.ToServiceIdentity(trustDomain),
 			},
 		},
 		{

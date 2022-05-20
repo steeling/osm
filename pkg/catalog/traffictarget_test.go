@@ -22,6 +22,8 @@ func TestListInboundServiceIdentities(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
+	trustDomain := "test-trust-domain"
+
 	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 	meshCatalog := MeshCatalog{
 		meshSpec: mockMeshSpec,
@@ -86,14 +88,14 @@ func TestListInboundServiceIdentities(t *testing.T) {
 			identity.K8sServiceAccount{
 				Name:      "sa-2",
 				Namespace: "ns-2",
-			}.ToServiceIdentity(),
+			}.ToServiceIdentity(trustDomain),
 
 			// allowed inbound service accounts: 1 match
 			[]identity.ServiceIdentity{
 				identity.K8sServiceAccount{
 					Name:      "sa-1",
 					Namespace: "ns-1",
-				}.ToServiceIdentity(),
+				}.ToServiceIdentity(trustDomain),
 			},
 		},
 		// Test case 1 end ------------------------------------
@@ -130,7 +132,7 @@ func TestListInboundServiceIdentities(t *testing.T) {
 			identity.K8sServiceAccount{
 				Name:      "sa-1",
 				Namespace: "ns-1",
-			}.ToServiceIdentity(),
+			}.ToServiceIdentity(trustDomain),
 
 			// allowed inbound service accounts: no match
 			nil,
@@ -169,7 +171,7 @@ func TestListInboundServiceIdentities(t *testing.T) {
 			identity.K8sServiceAccount{
 				Name:      "sa-1",
 				Namespace: "ns-1",
-			}.ToServiceIdentity(),
+			}.ToServiceIdentity(trustDomain),
 
 			// allowed inbound service accounts: no match
 			nil,
@@ -192,6 +194,8 @@ func TestListOutboundServiceIdentities(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
+
+	trustDomain := "test-local-domain"
 
 	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 	meshCatalog := MeshCatalog{
@@ -257,18 +261,18 @@ func TestListOutboundServiceIdentities(t *testing.T) {
 			identity.K8sServiceAccount{
 				Name:      "sa-1",
 				Namespace: "ns-1",
-			}.ToServiceIdentity(),
+			}.ToServiceIdentity(trustDomain),
 
 			// allowed inbound service accounts: 2 matches
 			[]identity.ServiceIdentity{
 				identity.K8sServiceAccount{
 					Name:      "sa-2",
 					Namespace: "ns-2",
-				}.ToServiceIdentity(),
+				}.ToServiceIdentity(trustDomain),
 				identity.K8sServiceAccount{
 					Name:      "sa-3",
 					Namespace: "ns-3",
-				}.ToServiceIdentity(),
+				}.ToServiceIdentity(trustDomain),
 			},
 		},
 		// Test case 1 end ------------------------------------
@@ -305,7 +309,7 @@ func TestListOutboundServiceIdentities(t *testing.T) {
 			identity.K8sServiceAccount{
 				Name:      "sa-2",
 				Namespace: "ns-2",
-			}.ToServiceIdentity(),
+			}.ToServiceIdentity(trustDomain),
 
 			// allowed inbound service accounts: no match
 			nil,
@@ -344,7 +348,7 @@ func TestListOutboundServiceIdentities(t *testing.T) {
 			identity.K8sServiceAccount{
 				Name:      "sa-1",
 				Namespace: "ns-1",
-			}.ToServiceIdentity(),
+			}.ToServiceIdentity(trustDomain),
 
 			// allowed inbound service accounts: no match
 			nil,
@@ -437,6 +441,8 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
+	trustDomain := "test-domain.com"
+
 	testCases := []struct {
 		name                    string
 		trafficTargets          []*smiAccess.TrafficTarget
@@ -496,14 +502,14 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 				},
 			},
 
-			upstreamServiceIdentity: identity.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"}.ToServiceIdentity(),
+			upstreamServiceIdentity: identity.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"}.ToServiceIdentity(trustDomain),
 
 			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentityFromString("sa-1.ns-1.cluster.local"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
+						identity.ServiceIdentityFromString("sa-2.ns-2.cluster.local"),
 					},
 					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
 						{
@@ -583,14 +589,14 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 				},
 			},
 
-			upstreamServiceIdentity: identity.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"}.ToServiceIdentity(),
+			upstreamServiceIdentity: identity.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"}.ToServiceIdentity(trustDomain),
 
 			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentityFromString("sa-1.ns-1.cluster.local"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
+						identity.ServiceIdentityFromString("sa-2.ns-2.cluster.local"),
 					},
 					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
 						{
@@ -731,14 +737,14 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 				},
 			},
 
-			upstreamServiceIdentity: identity.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"}.ToServiceIdentity(),
+			upstreamServiceIdentity: identity.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"}.ToServiceIdentity(trustDomain),
 
 			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentityFromString("sa-1.ns-1.cluster.local"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
+						identity.ServiceIdentityFromString("sa-2.ns-2.cluster.local"),
 					},
 					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
 						{
@@ -753,9 +759,9 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 				},
 				{
 					Name:        "ns-1/test-2",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentityFromString("sa-1.ns-1.cluster.local"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+						identity.ServiceIdentityFromString("sa-3.ns-3.cluster.local"),
 					},
 					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
 						{
@@ -818,14 +824,14 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 				},
 			},
 
-			upstreamServiceIdentity: identity.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"}.ToServiceIdentity(),
+			upstreamServiceIdentity: identity.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"}.ToServiceIdentity(trustDomain),
 
 			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentityFromString("sa-1.ns-1.cluster.local"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
+						identity.ServiceIdentityFromString("sa-2.ns-2.cluster.local"),
 					},
 					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
 						{

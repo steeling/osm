@@ -102,7 +102,7 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 				if backend.TLS.SkipClientCertValidation {
 					sourceIdentity = identity.WildcardServiceIdentity
 				} else {
-					sourceIdentity = identity.ServiceIdentity(source.Name)
+					sourceIdentity = identity.ServiceIdentity{Name: source.Name}
 				}
 				sourceServiceIdentities.Add(sourceIdentity)
 			}

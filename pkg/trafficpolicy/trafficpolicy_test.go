@@ -63,6 +63,7 @@ var (
 )
 
 func TestAddRule(t *testing.T) {
+	trustDomain := "testTrustDomain"
 	testCases := []struct {
 		name                  string
 		existingRules         []*Rule
@@ -78,7 +79,7 @@ func TestAddRule(t *testing.T) {
 			expectedRules: []*Rule{
 				{
 					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity(trustDomain)),
 				},
 			},
 		},
@@ -87,7 +88,7 @@ func TestAddRule(t *testing.T) {
 			existingRules: []*Rule{
 				{
 					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity(trustDomain)),
 				},
 			},
 			allowedServiceAccount: testServiceAccount2,
@@ -95,7 +96,7 @@ func TestAddRule(t *testing.T) {
 			expectedRules: []*Rule{
 				{
 					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity(), testServiceAccount2.ToServiceIdentity()),
+					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity(trustDomain), testServiceAccount2.ToServiceIdentity(trustDomain)),
 				},
 			},
 		},
@@ -104,7 +105,7 @@ func TestAddRule(t *testing.T) {
 			existingRules: []*Rule{
 				{
 					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity(trustDomain)),
 				},
 			},
 			allowedServiceAccount: testServiceAccount1,
@@ -112,7 +113,7 @@ func TestAddRule(t *testing.T) {
 			expectedRules: []*Rule{
 				{
 					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity(trustDomain)),
 				},
 			},
 		},
@@ -123,7 +124,7 @@ func TestAddRule(t *testing.T) {
 			assert := tassert.New(t)
 
 			inboundPolicy := newTestInboundPolicy(tc.name, tc.existingRules)
-			inboundPolicy.AddRule(tc.route, tc.allowedServiceAccount.ToServiceIdentity())
+			inboundPolicy.AddRule(tc.route, tc.allowedServiceAccount.ToServiceIdentity(trustDomain))
 			assert.Equal(tc.expectedRules, inboundPolicy.Rules)
 		})
 	}
@@ -285,13 +286,14 @@ func TestAddRoute(t *testing.T) {
 }
 
 func TestMergeInboundPolicies(t *testing.T) {
+	trustDomain := "cluster.test"
 	testRule1 := Rule{
 		Route:                    testRoute,
-		AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+		AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity(trustDomain)),
 	}
 	testRule2 := Rule{
 		Route:                    testRoute2,
-		AllowedServiceIdentities: mapset.NewSet(testServiceAccount2.ToServiceIdentity()),
+		AllowedServiceIdentities: mapset.NewSet(testServiceAccount2.ToServiceIdentity(trustDomain)),
 	}
 	testRule1Modified := Rule{
 		Route: RouteWeightedClusters{
@@ -389,13 +391,14 @@ func TestMergeInboundPolicies(t *testing.T) {
 }
 
 func TestMergeInboundPoliciesWithPartialHostnames(t *testing.T) {
+	trustDomain := "cluster.test"
 	testRule1 := Rule{
 		Route:                    testRoute,
-		AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+		AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity(trustDomain)),
 	}
 	testRule2 := Rule{
 		Route:                    testRoute2,
-		AllowedServiceIdentities: mapset.NewSet(testServiceAccount2.ToServiceIdentity()),
+		AllowedServiceIdentities: mapset.NewSet(testServiceAccount2.ToServiceIdentity(trustDomain)),
 	}
 	testRule1Modified := Rule{
 		Route: RouteWeightedClusters{
@@ -468,6 +471,7 @@ func TestMergeInboundPoliciesWithPartialHostnames(t *testing.T) {
 }
 
 func TestMergeRules(t *testing.T) {
+	trustDomain := "cluster.test"
 	testCases := []struct {
 		name          string
 		originalRules []*Rule
@@ -479,19 +483,19 @@ func TestMergeRules(t *testing.T) {
 			originalRules: []*Rule{
 				{
 					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity(trustDomain)),
 				},
 			},
 			newRules: []*Rule{
 				{
 					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount2.ToServiceIdentity()),
+					AllowedServiceIdentities: mapset.NewSet(testServiceAccount2.ToServiceIdentity(trustDomain)),
 				},
 			},
 			expectedRules: []*Rule{
 				{
 					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSetWith(testServiceAccount1.ToServiceIdentity(), testServiceAccount2.ToServiceIdentity()),
+					AllowedServiceIdentities: mapset.NewSetWith(testServiceAccount1.ToServiceIdentity(trustDomain), testServiceAccount2.ToServiceIdentity(trustDomain)),
 				},
 			},
 		},
@@ -500,19 +504,19 @@ func TestMergeRules(t *testing.T) {
 			originalRules: []*Rule{
 				{
 					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity(trustDomain)),
 				},
 			},
 			newRules: []*Rule{
 				{
 					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity(trustDomain)),
 				},
 			},
 			expectedRules: []*Rule{
 				{
 					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSetWith(testServiceAccount1.ToServiceIdentity()),
+					AllowedServiceIdentities: mapset.NewSetWith(testServiceAccount1.ToServiceIdentity(trustDomain)),
 				},
 			},
 		},
@@ -521,23 +525,23 @@ func TestMergeRules(t *testing.T) {
 			originalRules: []*Rule{
 				{
 					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity(trustDomain)),
 				},
 			},
 			newRules: []*Rule{
 				{
 					Route:                    testRoute2,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity(trustDomain)),
 				},
 			},
 			expectedRules: []*Rule{
 				{
 					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSetWith(testServiceAccount1.ToServiceIdentity()),
+					AllowedServiceIdentities: mapset.NewSetWith(testServiceAccount1.ToServiceIdentity(trustDomain)),
 				},
 				{
 					Route:                    testRoute2,
-					AllowedServiceIdentities: mapset.NewSetWith(testServiceAccount1.ToServiceIdentity()),
+					AllowedServiceIdentities: mapset.NewSetWith(testServiceAccount1.ToServiceIdentity(trustDomain)),
 				},
 			},
 		},

@@ -183,3 +183,7 @@ func (c *client) metricsHandler() cache.ResourceEventHandlerFuncs {
 		},
 	}
 }
+
+func (c *client) GetTrustDomain() string {
+	return "cluster.local"
+}

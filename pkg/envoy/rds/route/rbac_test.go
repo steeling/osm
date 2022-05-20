@@ -17,6 +17,7 @@ import (
 )
 
 func TestBuildInboundRBACFilterForRule(t *testing.T) {
+	trustDomain := "cluster.local"
 	testCases := []struct {
 		name               string
 		rule               *trafficpolicy.Rule
@@ -31,8 +32,8 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
 				AllowedServiceIdentities: mapset.NewSetFromSlice([]interface{}{
-					identity.K8sServiceAccount{Name: "foo", Namespace: "ns-1"}.ToServiceIdentity(),
-					identity.K8sServiceAccount{Name: "bar", Namespace: "ns-2"}.ToServiceIdentity(),
+					identity.K8sServiceAccount{Name: "foo", Namespace: "ns-1"}.ToServiceIdentity(trustDomain),
+					identity.K8sServiceAccount{Name: "bar", Namespace: "ns-2"}.ToServiceIdentity(trustDomain),
 				}),
 			},
 			expectedRBACPolicy: &xds_rbac.Policy{
