@@ -61,8 +61,9 @@ type InboundTrafficPolicy struct {
 
 // Rule is a struct that represents which service identities (authenticated principals) can access a Route
 type Rule struct {
-	Route                    RouteWeightedClusters `json:"route:omitempty"`
-	AllowedServiceIdentities mapset.Set            `json:"allowed_service_identities:omitempty"`
+	Route RouteWeightedClusters `json:"route:omitempty"`
+	// steeling Rename this to principal....
+	AllowedPrincipals mapset.Set `json:"allowed_principals:omitempty"`
 }
 
 // OutboundTrafficPolicy is a struct that associates a list of Routes with outbound traffic on a set of Hostnames

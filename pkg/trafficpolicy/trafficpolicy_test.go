@@ -39,15 +39,15 @@ var (
 		Weight:      100,
 	}
 
-	testServiceAccount1 = identity.K8sServiceAccount{
+	testServicePrincipal1 = identity.K8sServiceAccount{
 		Name:      "testServiceAccount1",
 		Namespace: "testNamespace1",
-	}
+	}.ToServiceIdentity().AsPrincipal("cluster.local")
 
-	testServiceAccount2 = identity.K8sServiceAccount{
+	testServicePrincipal2 = identity.K8sServiceAccount{
 		Name:      "testServiceAccount2",
 		Namespace: "testNamespace2",
-	}
+	}.ToServiceIdentity().AsPrincipal("cluster.local")
 
 	testRoute = RouteWeightedClusters{
 		HTTPRouteMatch:   testHTTPRouteMatch,
@@ -217,12 +217,12 @@ func TestAddRoute(t *testing.T) {
 
 func TestMergeInboundPoliciesWithPartialHostnames(t *testing.T) {
 	testRule1 := Rule{
-		Route:                    testRoute,
-		AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+		Route:             testRoute,
+		AllowedPrincipals: mapset.NewSet(testServicePrincipal1),
 	}
 	testRule2 := Rule{
-		Route:                    testRoute2,
-		AllowedServiceIdentities: mapset.NewSet(testServiceAccount2.ToServiceIdentity()),
+		Route:             testRoute2,
+		AllowedPrincipals: mapset.NewSet(testServicePrincipal2),
 	}
 	testRule1Modified := Rule{
 		Route: RouteWeightedClusters{
@@ -305,20 +305,20 @@ func TestMergeRules(t *testing.T) {
 			name: "routes match",
 			originalRules: []*Rule{
 				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+					Route:             testRoute,
+					AllowedPrincipals: mapset.NewSet(testServicePrincipal1),
 				},
 			},
 			newRules: []*Rule{
 				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount2.ToServiceIdentity()),
+					Route:             testRoute,
+					AllowedPrincipals: mapset.NewSet(testServicePrincipal2),
 				},
 			},
 			expectedRules: []*Rule{
 				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSetWith(testServiceAccount1.ToServiceIdentity(), testServiceAccount2.ToServiceIdentity()),
+					Route:             testRoute,
+					AllowedPrincipals: mapset.NewSetWith(testServicePrincipal1, testServicePrincipal2),
 				},
 			},
 		},
@@ -326,20 +326,20 @@ func TestMergeRules(t *testing.T) {
 			name: "routes match but with duplicate allowed service accounts",
 			originalRules: []*Rule{
 				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+					Route:             testRoute,
+					AllowedPrincipals: mapset.NewSet(testServicePrincipal1),
 				},
 			},
 			newRules: []*Rule{
 				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+					Route:             testRoute,
+					AllowedPrincipals: mapset.NewSet(testServicePrincipal1),
 				},
 			},
 			expectedRules: []*Rule{
 				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSetWith(testServiceAccount1.ToServiceIdentity()),
+					Route:             testRoute,
+					AllowedPrincipals: mapset.NewSetWith(testServicePrincipal1),
 				},
 			},
 		},
@@ -347,24 +347,24 @@ func TestMergeRules(t *testing.T) {
 			name: "routes don't match, add rule",
 			originalRules: []*Rule{
 				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+					Route:             testRoute,
+					AllowedPrincipals: mapset.NewSet(testServicePrincipal1),
 				},
 			},
 			newRules: []*Rule{
 				{
-					Route:                    testRoute2,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
+					Route:             testRoute2,
+					AllowedPrincipals: mapset.NewSet(testServicePrincipal1),
 				},
 			},
 			expectedRules: []*Rule{
 				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSetWith(testServiceAccount1.ToServiceIdentity()),
+					Route:             testRoute,
+					AllowedPrincipals: mapset.NewSetWith(testServicePrincipal1),
 				},
 				{
-					Route:                    testRoute2,
-					AllowedServiceIdentities: mapset.NewSetWith(testServiceAccount1.ToServiceIdentity()),
+					Route:             testRoute2,
+					AllowedPrincipals: mapset.NewSetWith(testServicePrincipal1),
 				},
 			},
 		},

@@ -145,18 +145,20 @@ func (mc *MeshCatalog) getRoutingRulesFromTrafficTarget(trafficTarget access.Tra
 		return nil
 	}
 
+	trustDomain := mc.GetTrustDomain()
 	// Compute the allowed downstream service identities for the given TrafficTarget object
-	allowedDownstreamIdentities := mapset.NewSet()
+	allowedPrincipals := mapset.NewSet()
 	for _, source := range trafficTarget.Spec.Sources {
-		sourceSvcIdentity := trafficTargetIdentityToSvcAccount(source).ToServiceIdentity()
-		allowedDownstreamIdentities.Add(sourceSvcIdentity)
+		sourceSvcIdentity := trafficTargetIdentityToSvcAccount(source).ToServiceIdentity().AsPrincipal(trustDomain)
+		allowedPrincipals.Add(sourceSvcIdentity)
 	}
 
 	var routingRules []*trafficpolicy.Rule
 	for _, httpRouteMatch := range httpRouteMatches {
 		rule := &trafficpolicy.Rule{
-			Route:                    *trafficpolicy.NewRouteWeightedCluster(httpRouteMatch, []service.WeightedCluster{routingCluster}),
-			AllowedServiceIdentities: allowedDownstreamIdentities,
+			Route: *trafficpolicy.NewRouteWeightedCluster(httpRouteMatch, []service.WeightedCluster{routingCluster}),
+			// steeling, maybe wildcard...
+			AllowedPrincipals: allowedPrincipals,
 		}
 		routingRules = append(routingRules, rule)
 	}

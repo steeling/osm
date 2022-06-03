@@ -118,6 +118,8 @@ func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcIdentity identity
 				}
 
 				allowed.Add(trafficTargetIdentityToSvcAccount(spec.Destination))
+				// even if there are multiple sources, we are only adding the singular destination, so break early.
+				break
 			}
 		}
 	}
@@ -175,6 +177,10 @@ func (mc *MeshCatalog) getTCPRouteMatchesFromTrafficTarget(trafficTarget smiAcce
 			return nil, errNoTrafficSpecFoundForTrafficPolicy
 		}
 
+		ports := make([]uint32, 0, len(tcpRoute.Spec.Matches.Ports))
+		for _, port := range tcpRoute.Spec.Matches.Ports {
+			ports = append(ports, uint32(port))
+		}
 		tcpRouteMatch := trafficpolicy.TCPRouteMatch{
 			Ports: toUint16Slice(tcpRoute.Spec.Matches.Ports),
 		}

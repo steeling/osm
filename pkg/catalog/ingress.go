@@ -36,8 +36,9 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 	ingressBackendWithStatus := *ingressBackendPolicy
 
 	var trafficRoutingRules []*trafficpolicy.Rule
-	sourceServiceIdentities := mapset.NewSet()
+	sourcePrincipals := mapset.NewSet()
 	var trafficMatches []*trafficpolicy.IngressTrafficMatch
+	trustDomain := mc.GetTrustDomain()
 	for _, backend := range ingressBackendPolicy.Spec.Backends {
 		if backend.Name != svc.Name || backend.Port.Number != int(svc.TargetPort) {
 			continue
@@ -93,11 +94,13 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 			case policyV1alpha1.KindAuthenticatedPrincipal:
 				var sourceIdentity identity.ServiceIdentity
 				if backend.TLS.SkipClientCertValidation {
+					// TODO(steeling): either have a validation that if the wildcard is provided, no
+					// other identities are provided, or reduce the identities to a single wildcard.
 					sourceIdentity = identity.WildcardServiceIdentity
 				} else {
 					sourceIdentity = identity.ServiceIdentity(source.Name)
 				}
-				sourceServiceIdentities.Add(sourceIdentity)
+				sourcePrincipals.Add(sourceIdentity.AsPrincipal(trustDomain))
 			}
 		}
 
@@ -105,7 +108,7 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 		// because the identity cannot be verified for HTTP traffic. HTTP based ingress can
 		// restrict downstreams based on their endpoint's IP address.
 		if strings.EqualFold(backend.Port.Protocol, constants.ProtocolHTTP) {
-			sourceServiceIdentities.Add(identity.WildcardServiceIdentity)
+			sourcePrincipals.Add(identity.WildcardServiceIdentity.String())
 		}
 
 		trafficMatch.SourceIPRanges = sourceIPRanges
@@ -124,7 +127,7 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 				HTTPRouteMatch:   trafficpolicy.WildCardRouteMatch,
 				WeightedClusters: mapset.NewSet(backendCluster),
 			},
-			AllowedServiceIdentities: sourceServiceIdentities,
+			AllowedPrincipals: sourcePrincipals,
 		}
 		trafficRoutingRules = append(trafficRoutingRules, routingRule)
 	}
