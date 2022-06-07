@@ -34,10 +34,11 @@ const (
 
 // HTTPRouteMatch is a struct to represent an HTTP route match comprised of an HTTP path, path matching type, methods, and headers
 type HTTPRouteMatch struct {
-	Path          string            `json:"path:omitempty"`
-	PathMatchType PathMatchType     `json:"path_match_type:omitempty"`
-	Methods       []string          `json:"methods:omitempty"`
-	Headers       map[string]string `json:"headers:omitempty"`
+	Path          string        `json:"path:omitempty"`
+	PathMatchType PathMatchType `json:"path_match_type:omitempty"`
+	// TODO: method should be a map for its equality check, since order doesn't matter.
+	Methods []string          `json:"methods:omitempty"`
+	Headers map[string]string `json:"headers:omitempty"`
 }
 
 // TCPRouteMatch is a struct to represent a TCP route matching based on ports
@@ -57,6 +58,11 @@ type InboundTrafficPolicy struct {
 	Name      string   `json:"name:omitempty"`
 	Hostnames []string `json:"hostnames"`
 	Rules     []*Rule  `json:"rules:omitempty"`
+}
+
+type InboundRule struct {
+	HTTPRouteMatch           HTTPRouteMatch `json:"http_route_match:omitempty"`
+	AllowedServiceIdentities mapset.Set     `json:"allowed_service_identities:omitempty"`
 }
 
 // Rule is a struct that represents which service identities (authenticated principals) can access a Route
@@ -102,19 +108,10 @@ type OutboundMeshTrafficPolicy struct {
 // InboundMeshTrafficPolicy is the type used to represent the inbound mesh traffic policy configurations
 // applicable to an upstream server.
 type InboundMeshTrafficPolicy struct {
-	// TrafficMatches defines the list of traffic matches for matching inbound mesh traffic.
-	// The matches specified are used to match inbound traffic as mesh traffic, and
-	// subject matching traffic to mesh traffic policies.
-	TrafficMatches []*TrafficMatch
-
 	// HTTPRouteConfigsPerPort defines the inbound mesh HTTP route configurations per port.
 	// Mesh HTTP routes are grouped based on their port to avoid route conflicts that
 	// can arise when the same host headers are to be routed differently based on the port.
 	HTTPRouteConfigsPerPort map[int][]*InboundTrafficPolicy
-
-	// ClustersConfigs defines the list of mesh cluster configurations.
-	// The specified config is used to program local clusters on the upstream server.
-	ClustersConfigs []*MeshClusterConfig
 }
 
 // MeshClusterConfig is the type used to represent a cluster configuration that is programmed
