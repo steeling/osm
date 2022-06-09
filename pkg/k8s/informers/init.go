@@ -5,10 +5,6 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/informers"
 
-	smiAccessInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/informers/externalversions"
-	smiTrafficSpecInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/informers/externalversions"
-	smiTrafficSplitInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/informers/externalversions"
-
 	configInformers "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions"
 	policyInformers "github.com/openservicemesh/osm/pkg/gen/client/policy/informers/externalversions"
 
@@ -96,58 +92,6 @@ func (ic *InformerCollection) initEndpointMonitor() {
 		informer.customStore = customStore
 	}
 	ic.informers[InformerKeyEndpoints] = informer
-}
-
-func (ic *InformerCollection) initTrafficSplitMonitor() {
-	informerFactory := smiTrafficSplitInformers.NewSharedInformerFactory(ic.smiTrafficSplitClient, DefaultKubeEventResyncInterval)
-	informer := &informer{
-		informer: informerFactory.Split().V1alpha2().TrafficSplits().Informer(),
-	}
-
-	customStore := ic.customStores[InformerKeyTrafficSplit]
-	if customStore != nil {
-		informer.customStore = customStore
-	}
-	ic.informers[InformerKeyTrafficSplit] = informer
-}
-
-func (ic *InformerCollection) initTrafficTargetMonitor() {
-	informerFactory := smiAccessInformers.NewSharedInformerFactory(ic.smiAccessClient, DefaultKubeEventResyncInterval)
-	informer := &informer{
-		informer: informerFactory.Access().V1alpha3().TrafficTargets().Informer(),
-	}
-
-	customStore := ic.customStores[InformerKeyTrafficTarget]
-	if customStore != nil {
-		informer.customStore = customStore
-	}
-	ic.informers[InformerKeyTrafficTarget] = informer
-}
-
-func (ic *InformerCollection) initHTTPRouteGroupMonitor() {
-	informerFactory := smiTrafficSpecInformers.NewSharedInformerFactory(ic.smiTrafficSpecClient, DefaultKubeEventResyncInterval)
-	informer := &informer{
-		informer: informerFactory.Specs().V1alpha4().HTTPRouteGroups().Informer(),
-	}
-
-	customStore := ic.customStores[InformerKeyHTTPRouteGroup]
-	if customStore != nil {
-		informer.customStore = customStore
-	}
-	ic.informers[InformerKeyHTTPRouteGroup] = informer
-}
-
-func (ic *InformerCollection) initTCPRouteMonitor() {
-	informerFactory := smiTrafficSpecInformers.NewSharedInformerFactory(ic.smiTrafficSpecClient, DefaultKubeEventResyncInterval)
-	informer := &informer{
-		informer: informerFactory.Specs().V1alpha4().TCPRoutes().Informer(),
-	}
-
-	customStore := ic.customStores[InformerKeyTCPRoute]
-	if customStore != nil {
-		informer.customStore = customStore
-	}
-	ic.informers[InformerKeyTCPRoute] = informer
 }
 
 func (ic *InformerCollection) initMeshConfigMonitor() {

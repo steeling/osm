@@ -5,11 +5,17 @@ import (
 	smiTrafficAccessClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
 	smiTrafficSpecClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned"
 	smiTrafficSplitClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
+
+	smiAccessInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/informers/externalversions"
+	smiTrafficSpecInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/informers/externalversions"
+	smiTrafficSplitInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/informers/externalversions"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
+	policyInformers "github.com/openservicemesh/osm/pkg/gen/client/policy/informers/externalversions"
 )
 
 var (
@@ -47,9 +53,8 @@ type InformerCollectionOption func(*InformerCollection)
 // NewInformerCollection creates a new InformerCollection
 func NewInformerCollection(meshName string, stop <-chan struct{}, opts ...InformerCollectionOption) (*InformerCollection, error) {
 	ic := &InformerCollection{
-		meshName:          meshName,
-		informers:         map[InformerKey]*informer{},
-		selectedInformers: map[InformerKey]struct{}{},
+		meshName:  meshName,
+		informers: map[InformerKey]cache.SharedIndexInformer{},
 	}
 
 	// Execute all of the given options (e.g. set clients, set custom stores, etc.)
@@ -57,56 +62,6 @@ func NewInformerCollection(meshName string, stop <-chan struct{}, opts ...Inform
 		if opt != nil {
 			opt(ic)
 		}
-	}
-
-	informerInitHandlerMap := map[InformerKey]informerInit{
-		// Kubernetes
-		InformerKeyNamespace:      ic.initNamespaceMonitor,
-		InformerKeyService:        ic.initServicesMonitor,
-		InformerKeyServiceAccount: ic.initServiceAccountsMonitor,
-		InformerKeyPod:            ic.initPodMonitor,
-		InformerKeyEndpoints:      ic.initEndpointMonitor,
-
-		// SMI
-		InformerKeyTrafficSplit:   ic.initTrafficSplitMonitor,
-		InformerKeyTrafficTarget:  ic.initTrafficTargetMonitor,
-		InformerKeyHTTPRouteGroup: ic.initHTTPRouteGroupMonitor,
-		InformerKeyTCPRoute:       ic.initTCPRouteMonitor,
-
-		// Config
-		InformerKeyMeshConfig:          ic.initMeshConfigMonitor,
-		InformerKeyMeshRootCertificate: ic.initMeshRootCertificateMonitor,
-
-		// Policy
-		InformerKeyEgress:                 ic.initEgressMonitor,
-		InformerKeyIngressBackend:         ic.initIngressBackendMonitor,
-		InformerKeyUpstreamTrafficSetting: ic.initUpstreamTrafficSettingMonitor,
-		InformerKeyRetry:                  ic.initRetryMonitor,
-	}
-
-	if len(ic.selectedInformers) == 0 {
-		// Select all informers
-		ic.selectedInformers = map[InformerKey]struct{}{
-			InformerKeyNamespace:              {},
-			InformerKeyService:                {},
-			InformerKeyPod:                    {},
-			InformerKeyEndpoints:              {},
-			InformerKeyServiceAccount:         {},
-			InformerKeyTrafficSplit:           {},
-			InformerKeyTrafficTarget:          {},
-			InformerKeyHTTPRouteGroup:         {},
-			InformerKeyTCPRoute:               {},
-			InformerKeyMeshConfig:             {},
-			InformerKeyMeshRootCertificate:    {},
-			InformerKeyEgress:                 {},
-			InformerKeyIngressBackend:         {},
-			InformerKeyUpstreamTrafficSetting: {},
-			InformerKeyRetry:                  {},
-		}
-	}
-
-	for key := range ic.selectedInformers {
-		informerInitHandlerMap[key]()
 	}
 
 	if err := ic.run(stop); err != nil {
@@ -117,40 +72,25 @@ func NewInformerCollection(meshName string, stop <-chan struct{}, opts ...Inform
 	return ic, nil
 }
 
-// WithCustomStores provides the InformerCollection an set of `cache.Store`s indexed
-// by InformerKey. This functionality was added for the express purpose of testing
-// flexibility since the alternative often leads to flaky tests and race conditions
-// between the time an object is added to a fake clientset and when that object
-// is actually added to the informer `cache.Store`.
-func WithCustomStores(stores map[InformerKey]cache.Store) InformerCollectionOption {
-	return func(ic *InformerCollection) {
-		ic.customStores = stores
-	}
-}
-
 // WithKubeClient sets the kubeClient for the InformerCollection
 func WithKubeClient(kubeClient kubernetes.Interface) InformerCollectionOption {
 	return func(ic *InformerCollection) {
 		ic.kubeClient = kubeClient
 
-		// select the k8s informers
-		for _, key := range k8sInformerKeys {
-			ic.selectedInformers[key] = struct{}{}
-		}
 	}
 }
 
 // WithSMIClients sets the SMI clients for the InformerCollection
 func WithSMIClients(smiTrafficSplitClient smiTrafficSplitClient.Interface, smiTrafficSpecClient smiTrafficSpecClient.Interface, smiAccessClient smiTrafficAccessClient.Interface) InformerCollectionOption {
 	return func(ic *InformerCollection) {
-		ic.smiTrafficSplitClient = smiTrafficSplitClient
-		ic.smiTrafficSpecClient = smiTrafficSpecClient
-		ic.smiAccessClient = smiAccessClient
+		accessInformerFactory := smiAccessInformers.NewSharedInformerFactory(smiAccessClient, DefaultKubeEventResyncInterval)
+		splitInformerFactory := smiTrafficSplitInformers.NewSharedInformerFactory(smiTrafficSplitClient, DefaultKubeEventResyncInterval)
+		specInformerFactory := smiTrafficSpecInformers.NewSharedInformerFactory(smiTrafficSpecClient, DefaultKubeEventResyncInterval)
 
-		// select the SMI informers
-		for _, key := range smiInformerKeys {
-			ic.selectedInformers[key] = struct{}{}
-		}
+		ic.informers[InformerKeyTCPRoute] = specInformerFactory.Specs().V1alpha4().TCPRoutes().Informer()
+		ic.informers[InformerKeyHTTPRouteGroup] = specInformerFactory.Specs().V1alpha4().HTTPRouteGroups().Informer()
+		ic.informers[InformerKeyTrafficTarget] = accessInformerFactory.Access().V1alpha3().TrafficTargets().Informer()
+		ic.informers[InformerKeyTrafficSplit] = splitInformerFactory.Split().V1alpha2().TrafficSplits().Informer()
 	}
 }
 
@@ -170,6 +110,9 @@ func WithConfigClient(configClient configClientset.Interface) InformerCollection
 func WithPolicyClient(policyClient policyClientset.Interface) InformerCollectionOption {
 	return func(ic *InformerCollection) {
 		ic.policyClient = policyClient
+
+		informerFactory := policyInformers.NewSharedInformerFactory(policyClient, DefaultKubeEventResyncInterval)
+		ic.informers[InformerKeyUpstreamTrafficSetting] = informerFactory.Policy().V1alpha1().UpstreamTrafficSettings().Informer()
 
 		// select the policy informers
 		for _, key := range policyInformerKeys {

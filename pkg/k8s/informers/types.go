@@ -4,15 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-
-	smiTrafficAccessClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
-	smiTrafficSpecClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned"
-	smiTrafficSplitClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
-
-	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
-	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 )
 
 // InformerKey stores the different Informers we keep for K8s resources
@@ -75,16 +67,8 @@ type informer struct {
 // initialized with the clients stored in its fields. This data
 // type should only be passed around as a pointer
 type InformerCollection struct {
-	informers             map[InformerKey]*informer
-	meshName              string
-	kubeClient            kubernetes.Interface
-	smiTrafficSplitClient smiTrafficSplitClient.Interface
-	smiTrafficSpecClient  smiTrafficSpecClient.Interface
-	smiAccessClient       smiTrafficAccessClient.Interface
-	configClient          configClientset.Interface
-	policyClient          policyClientset.Interface
-	selectedInformers     map[InformerKey]struct{}
-	customStores          map[InformerKey]cache.Store
+	informers map[InformerKey]*informer
+	meshName  string
 }
 
 type informerInit func()
