@@ -2,27 +2,18 @@
 package bootstrap
 
 import (
+	xds_bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
+
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 var log = logger.New("envoy/bootstrap")
 
 // Config is the type used to represent the information needed to build the Envoy bootstrap config
-type Config struct {
-	// Admin port is the Envoy admin port
-	AdminPort uint32
-
-	// XDSClusterName is the name of the XDS cluster to connect to
-	XDSClusterName string
-
+type Builder struct {
 	// XDSHost is the hostname of the XDS cluster to connect to
 	XDSHost string
-
-	// XDSPort is the port of the XDS cluster to connect to
-	XDSPort uint32
-
-	// NodeID is the proxy's node ID
-	NodeID string
 
 	// TLSMinProtocolVersion is the minimum supported TLS protocol version
 	TLSMinProtocolVersion string
@@ -35,4 +26,13 @@ type Config struct {
 
 	// ECDHCurves is the list of ECDH curves it supports
 	ECDHCurves []string
+
+	// The bootstrap Envoy config will be affected by the liveness, readiness, startup probes set on
+	// the pod this Envoy is fronting.
+	OriginalHealthProbes HealthProbes
+
+	Certificate  *certificate.Certificate
+	OSMNamespace string
+
+	prevConfig *xds_bootstrap.Bootstrap
 }

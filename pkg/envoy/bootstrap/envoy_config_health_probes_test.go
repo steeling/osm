@@ -1,4 +1,4 @@
-package injector
+package bootstrap
 
 import (
 	"testing"
@@ -9,17 +9,15 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/reflect/protoreflect"
-
-	"github.com/openservicemesh/osm/pkg/injector/test"
 )
 
 var _ = ginkgo.Describe("Test functions creating Envoy config and rewriting the Pod's health probes to pass through Envoy", func() {
 
 	timeout := 42 * time.Second
-	liveness := &healthProbe{path: "/liveness", port: 81, isHTTP: true, isTCPSocket: false, timeout: timeout}
-	livenessNonHTTP := &healthProbe{port: 81, isHTTP: false, isTCPSocket: false, timeout: timeout}
-	readiness := &healthProbe{path: "/readiness", port: 82, isHTTP: true, isTCPSocket: false, timeout: timeout}
-	startup := &healthProbe{path: "/startup", port: 83, isHTTP: true, isTCPSocket: false, timeout: timeout}
+	liveness := &HealthProbe{path: "/liveness", port: 81, isHTTP: true, isTCPSocket: false, timeout: timeout}
+	livenessNonHTTP := &HealthProbe{port: 81, isHTTP: false, isTCPSocket: false, timeout: timeout}
+	readiness := &HealthProbe{path: "/readiness", port: 82, isHTTP: true, isTCPSocket: false, timeout: timeout}
+	startup := &HealthProbe{path: "/startup", port: 83, isHTTP: true, isTCPSocket: false, timeout: timeout}
 
 	// Listed below are the functions we are going to test.
 	// The key in the map is the name of the function -- must match what's in the value of the map.
@@ -52,7 +50,7 @@ var _ = ginkgo.Describe("Test functions creating Envoy config and rewriting the 
 		//     a) marshal return xDS struct of each function to yaml (and save it to "actual_output_<functionName>.yaml")
 		//     b) load expectation from "expected_output_<functionName>.yaml"
 		//     c) compare actual and expected in a ginkgo.Context() + ginkgo.It()
-		test.ThisXdsClusterFunction(fnName, fn)
+		ThisXdsClusterFunction(fnName, fn)
 	}
 
 	for fnName, fn := range listenerFunctionsToTest {
@@ -61,14 +59,14 @@ var _ = ginkgo.Describe("Test functions creating Envoy config and rewriting the 
 		//     b) marshal return xDS struct of each function to yaml (and save it to "actual_output_<functionName>.yaml")
 		//     c) load expectation from "expected_output_<functionName>.yaml"
 		//     d) compare actual and expected in a ginkgo.Context() + ginkgo.It()
-		test.ThisXdsListenerFunction(fnName, fn)
+		ThisXdsListenerFunction(fnName, fn)
 	}
 })
 
 func TestGetProbeCluster(t *testing.T) {
 	type probeClusterTest struct {
 		name     string
-		probe    *healthProbe
+		probe    *HealthProbe
 		expected *xds_cluster.Cluster
 	}
 
@@ -115,7 +113,7 @@ func TestGetProbeCluster(t *testing.T) {
 func TestGetProbeListener(t *testing.T) {
 	type probeListenerTest struct {
 		name     string
-		probe    *healthProbe
+		probe    *HealthProbe
 		expected *xds_listener.Listener
 		err      error
 	}

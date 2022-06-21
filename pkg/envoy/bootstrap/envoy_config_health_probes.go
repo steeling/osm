@@ -1,4 +1,4 @@
-package injector
+package bootstrap
 
 import (
 	"time"
@@ -33,21 +33,21 @@ const (
 	startupListener   = "startup_listener"
 )
 
-func getLivenessCluster(originalProbe *healthProbe) *xds_cluster.Cluster {
+func getLivenessCluster(originalProbe *HealthProbe) *xds_cluster.Cluster {
 	if originalProbe == nil {
 		return nil
 	}
 	return getProbeCluster(livenessCluster, originalProbe.port)
 }
 
-func getReadinessCluster(originalProbe *healthProbe) *xds_cluster.Cluster {
+func getReadinessCluster(originalProbe *HealthProbe) *xds_cluster.Cluster {
 	if originalProbe == nil {
 		return nil
 	}
 	return getProbeCluster(readinessCluster, originalProbe.port)
 }
 
-func getStartupCluster(originalProbe *healthProbe) *xds_cluster.Cluster {
+func getStartupCluster(originalProbe *HealthProbe) *xds_cluster.Cluster {
 	if originalProbe == nil {
 		return nil
 	}
@@ -89,28 +89,28 @@ func getProbeCluster(clusterName string, port int32) *xds_cluster.Cluster {
 	}
 }
 
-func getLivenessListener(originalProbe *healthProbe) (*xds_listener.Listener, error) {
+func getLivenessListener(originalProbe *HealthProbe) (*xds_listener.Listener, error) {
 	if originalProbe == nil {
 		return nil, nil
 	}
-	return getProbeListener(livenessListener, livenessCluster, livenessProbePath, livenessProbePort, originalProbe)
+	return getProbeListener(livenessListener, livenessCluster, livenessProbePath, constants.LivenessProbePort, originalProbe)
 }
 
-func getReadinessListener(originalProbe *healthProbe) (*xds_listener.Listener, error) {
+func getReadinessListener(originalProbe *HealthProbe) (*xds_listener.Listener, error) {
 	if originalProbe == nil {
 		return nil, nil
 	}
-	return getProbeListener(readinessListener, readinessCluster, readinessProbePath, readinessProbePort, originalProbe)
+	return getProbeListener(readinessListener, readinessCluster, readinessProbePath, constants.ReadinessProbePort, originalProbe)
 }
 
-func getStartupListener(originalProbe *healthProbe) (*xds_listener.Listener, error) {
+func getStartupListener(originalProbe *HealthProbe) (*xds_listener.Listener, error) {
 	if originalProbe == nil {
 		return nil, nil
 	}
-	return getProbeListener(startupListener, startupCluster, startupProbePath, startupProbePort, originalProbe)
+	return getProbeListener(startupListener, startupCluster, startupProbePath, constants.StartupProbePort, originalProbe)
 }
 
-func getProbeListener(listenerName, clusterName, newPath string, port int32, originalProbe *healthProbe) (*xds_listener.Listener, error) {
+func getProbeListener(listenerName, clusterName, newPath string, port int32, originalProbe *HealthProbe) (*xds_listener.Listener, error) {
 	var filterChain *xds_listener.FilterChain
 	if originalProbe.isHTTP {
 		httpAccessLog, err := getHTTPAccessLog()

@@ -4,6 +4,18 @@ package constants
 import "time"
 
 const (
+	// LivenessProbePort is the port on which the liveness probe is listening
+	LivenessProbePort = int32(15901)
+
+	// ReadinessProbePort is the port on which the readiness probe is listening
+	ReadinessProbePort = int32(15902)
+
+	// StartupProbePort is the port on which the startup probe is listening
+	StartupProbePort = int32(15903)
+
+	// HealthcheckPort is the port on which the healthcheck is listening
+	HealthcheckPort = int32(15904)
+
 	// WildcardIPAddr is a string constant.
 	WildcardIPAddr = "0.0.0.0"
 

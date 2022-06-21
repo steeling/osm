@@ -330,6 +330,18 @@ func patchAdmissionResponse(resp *admissionv1.AdmissionResponse, patchBytes []by
 	resp.PatchType = &pt
 }
 
+// startTime := time.Now()
+// bootstrapCertificate, err := wh.certManager.IssueCertificate(cnPrefix, certificate.WithValidityPeriod(constants.XDSCertificateValidityPeriod))
+// if err != nil {
+// 	log.Error().Err(err).Msgf("Error issuing bootstrap certificate for Envoy with CN prefix=%s", cnPrefix)
+// 	return nil, err
+// }
+// elapsed := time.Since(startTime)
+
+// metricsstore.DefaultMetricsStore.CertIssuedCount.Inc()
+// metricsstore.DefaultMetricsStore.CertIssuedTime.
+// 	WithLabelValues().Observe(elapsed.Seconds())
+
 func createOrUpdateMutatingWebhook(clientSet kubernetes.Interface, cert *certificate.Certificate, webhookTimeout int32, webhookName, meshName, osmNamespace, osmVersion string, enableReconciler bool) error {
 	webhookPath := webhookCreatePod
 	webhookPort := int32(constants.InjectorWebhookPort)

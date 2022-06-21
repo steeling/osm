@@ -6,32 +6,24 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 func TestBuildFromConfig(t *testing.T) {
 	assert := tassert.New(t)
 	cert := tresorFake.NewFakeCertificate()
 
-	config := Config{
-		NodeID:                cert.GetCommonName().String(),
-		AdminPort:             15000,
-		XDSClusterName:        constants.OSMControllerName,
+	builder := Builder{
+		Certificate:           cert,
 		XDSHost:               "osm-controller.osm-system.svc.cluster.local",
-		XDSPort:               15128,
 		TLSMinProtocolVersion: "TLSv1_0",
 		TLSMaxProtocolVersion: "TLSv1_2",
 		CipherSuites:          []string{"abc", "xyz"},
 		ECDHCurves:            []string{"ABC", "XYZ"},
 	}
 
-	bootstrapConfig, err := BuildFromConfig(config)
+	actualYAML, err := builder.Build()
 	assert.Nil(err)
-	assert.NotNil(bootstrapConfig)
-
-	actualYAML, err := utils.ProtoToYAML(bootstrapConfig)
-	assert.Nil(err)
+	assert.NotNil(actualYAML)
 
 	expectedYAML := `admin:
   access_log:

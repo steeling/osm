@@ -1,5 +1,5 @@
 // Package test implements utility routes to test the functionality provided by the injector package.
-package test
+package bootstrap
 
 import (
 	"fmt"
@@ -12,14 +12,10 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"gopkg.in/yaml.v2"
-
-	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 // All the YAML files listed above are in this sub-directory
 const directoryForExpectationsYAML = "../../tests/envoy_xds_expectations/"
-
-var log = logger.New("sidecar-injector")
 
 func getTempDir() string {
 	dir, err := ioutil.TempDir("", "osm_test_envoy")

@@ -5,7 +5,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -14,12 +13,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.AdmissionRequest, proxyUUID uuid.UUID) ([]byte, error) {
@@ -28,47 +25,15 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	// Issue a certificate for the proxy sidecar - used for Envoy to connect to XDS (not Envoy-to-Envoy connections)
 	cnPrefix := envoy.NewXDSCertCNPrefix(proxyUUID, envoy.KindSidecar, identity.New(pod.Spec.ServiceAccountName, namespace))
 	log.Debug().Msgf("Patching POD spec: service-account=%s, namespace=%s with certificate CN prefix=%s", pod.Spec.ServiceAccountName, namespace, cnPrefix)
-	startTime := time.Now()
-	bootstrapCertificate, err := wh.certManager.IssueCertificate(cnPrefix, certificate.WithValidityPeriod(constants.XDSCertificateValidityPeriod))
-	if err != nil {
-		log.Error().Err(err).Msgf("Error issuing bootstrap certificate for Envoy with CN prefix=%s", cnPrefix)
-		return nil, err
-	}
-	elapsed := time.Since(startTime)
 
-	metricsstore.DefaultMetricsStore.CertIssuedCount.Inc()
-	metricsstore.DefaultMetricsStore.CertIssuedTime.
-		WithLabelValues().Observe(elapsed.Seconds())
 	originalHealthProbes := rewriteHealthProbes(pod)
 
 	// Create the bootstrap configuration for the Envoy proxy for the given pod
 	envoyBootstrapConfigName := bootstrapSecretPrefix + proxyUUID.String()
 
 	// This needs to occur before replacing the label below.
-	originalUUID, alreadyInjected := getProxyUUID(pod)
-	switch {
-	case req.DryRun != nil && *req.DryRun:
-		// The webhook has a side effect (making out-of-band changes) of creating k8s secret
-		// corresponding to the Envoy bootstrap config. Such a side effect needs to be skipped
-		// when the request is a DryRun.
-		// Ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#side-effects
-		log.Debug().Msgf("Skipping envoy bootstrap config creation for dry-run request: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, namespace)
-	case alreadyInjected:
-		// Pod definitions can be copied via the `kubectl debug` command, which can lead to a pod being created that
-		// has already had injection occur. We could simply do nothing and return early, but that would leave 2 pods
-		// with the same UUID, so instead we change the UUID, and create a new bootstrap config, copied from the original,
-		// with the proxy UUID changed.
-		oldConfigName := bootstrapSecretPrefix + originalUUID
-		if _, err := wh.createEnvoyBootstrapFromExisting(envoyBootstrapConfigName, oldConfigName, namespace, bootstrapCertificate); err != nil {
-			log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for already-injected pod: service-account=%s, namespace=%s, certificate CN prefix=%s", pod.Spec.ServiceAccountName, namespace, cnPrefix)
-			return nil, err
-		}
-	default:
-		if _, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate, originalHealthProbes); err != nil {
-			log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for pod: service-account=%s, namespace=%s, certificate CN prefix=%s", pod.Spec.ServiceAccountName, namespace, cnPrefix)
-			return nil, err
-		}
-	}
+	_, alreadyInjected := getProxyUUID(pod)
+
 	enableMetrics, err := wh.isMetricsEnabled(namespace)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error checking if namespace %s is enabled for metrics", namespace)

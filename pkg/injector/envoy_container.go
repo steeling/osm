@@ -34,7 +34,7 @@ func getPlatformSpecificSpecComponents(cfg configurator.Configurator, podOS stri
 	return
 }
 
-func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator, originalHealthProbes healthProbes, podOS string) corev1.Container {
+func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator, originalHealthProbes bootstrap.HealthProbes, podOS string) corev1.Container {
 	// cluster ID will be used as an identifier to the tracing sink
 	clusterID := fmt.Sprintf("%s.%s", pod.Spec.ServiceAccountName, pod.Namespace)
 	securityContext, containerImage := getPlatformSpecificSpecComponents(cfg, podOS)
@@ -102,7 +102,7 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator
 	}
 }
 
-func getEnvoyContainerPorts(originalHealthProbes healthProbes) []corev1.ContainerPort {
+func getEnvoyContainerPorts(originalHealthProbes bootstrap.HealthProbes) []corev1.ContainerPort {
 	containerPorts := []corev1.ContainerPort{
 		{
 			Name:          constants.EnvoyAdminPortName,
@@ -118,29 +118,29 @@ func getEnvoyContainerPorts(originalHealthProbes healthProbes) []corev1.Containe
 		},
 	}
 
-	if originalHealthProbes.liveness != nil {
+	if originalHealthProbes.Liveness != nil {
 		livenessPort := corev1.ContainerPort{
 			// Name must be no more than 15 characters
 			Name:          "liveness-port",
-			ContainerPort: livenessProbePort,
+			ContainerPort: constants.LivenessProbePort,
 		}
 		containerPorts = append(containerPorts, livenessPort)
 	}
 
-	if originalHealthProbes.readiness != nil {
+	if originalHealthProbes.Readiness != nil {
 		readinessPort := corev1.ContainerPort{
 			// Name must be no more than 15 characters
 			Name:          "readiness-port",
-			ContainerPort: readinessProbePort,
+			ContainerPort: constants.ReadinessProbePort,
 		}
 		containerPorts = append(containerPorts, readinessPort)
 	}
 
-	if originalHealthProbes.startup != nil {
+	if originalHealthProbes.Startup != nil {
 		startupPort := corev1.ContainerPort{
 			// Name must be no more than 15 characters
 			Name:          "startup-port",
-			ContainerPort: startupProbePort,
+			ContainerPort: constants.StartupProbePort,
 		}
 		containerPorts = append(containerPorts, startupPort)
 	}

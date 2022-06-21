@@ -1,4 +1,4 @@
-package injector
+package bootstrap
 
 import (
 	"fmt"
@@ -94,20 +94,20 @@ func TestRewriteProbe(t *testing.T) {
 
 	t.Run("rewriteHealthProbes", func(t *testing.T) {
 		actual := rewriteHealthProbes(pod)
-		expected := healthProbes{
-			liveness: &healthProbe{
+		expected := HealthProbes{
+			Liveness: &HealthProbe{
 				path:    "/b",
 				port:    2,
 				isHTTP:  true,
 				timeout: probeTimeoutDuration,
 			},
-			readiness: &healthProbe{
+			Readiness: &HealthProbe{
 				path:    "/a",
 				port:    1,
 				isHTTP:  true,
 				timeout: probeTimeoutDuration,
 			},
-			startup: &healthProbe{
+			Startup: &HealthProbe{
 				path:    "/c",
 				port:    3,
 				isHTTP:  true,
@@ -119,7 +119,7 @@ func TestRewriteProbe(t *testing.T) {
 
 	t.Run("rewriteLiveness", func(t *testing.T) {
 		actual := rewriteLiveness(container)
-		expected := &healthProbe{
+		expected := &HealthProbe{
 			path:    "/k/l/m",
 			port:    7890,
 			isHTTP:  true,
@@ -130,7 +130,7 @@ func TestRewriteProbe(t *testing.T) {
 
 	t.Run("rewriteReadiness", func(t *testing.T) {
 		actual := rewriteReadiness(container)
-		expected := &healthProbe{
+		expected := &HealthProbe{
 			path:    "/a/b/c",
 			port:    1234,
 			isHTTP:  true,
@@ -141,7 +141,7 @@ func TestRewriteProbe(t *testing.T) {
 
 	t.Run("rewriteStartup", func(t *testing.T) {
 		actual := rewriteStartup(container)
-		expected := &healthProbe{
+		expected := &HealthProbe{
 			path:    "/x/y/z",
 			port:    3456,
 			isHTTP:  true,
@@ -157,7 +157,7 @@ func TestRewriteProbe(t *testing.T) {
 			newPath      string
 			originalPort int32
 			newPort      int32
-			expected     *healthProbe
+			expected     *HealthProbe
 		}{
 			{
 				name:     "nil",
@@ -172,7 +172,7 @@ func TestRewriteProbe(t *testing.T) {
 			{
 				name:  "getPort() error",
 				probe: makeHTTPProbe("/x/y/z", 0),
-				expected: &healthProbe{
+				expected: &HealthProbe{
 					path:    "/x/y/z",
 					port:    0,
 					isHTTP:  true,
@@ -184,7 +184,7 @@ func TestRewriteProbe(t *testing.T) {
 				probe:   makeHTTPProbe("/x/y/z", 3456),
 				newPath: "/x",
 				newPort: 3465,
-				expected: &healthProbe{
+				expected: &HealthProbe{
 					path:    "/x/y/z",
 					port:    3456,
 					isHTTP:  true,
@@ -196,7 +196,7 @@ func TestRewriteProbe(t *testing.T) {
 				probe:   makeHTTPSProbe("/x/y/z", 3456),
 				newPath: "/x/y/z",
 				newPort: 3465,
-				expected: &healthProbe{
+				expected: &HealthProbe{
 					path:    "/x/y/z",
 					port:    3456,
 					isHTTP:  false,
@@ -209,7 +209,7 @@ func TestRewriteProbe(t *testing.T) {
 				originalPort: 3456,
 				newPath:      "/osm-healthcheck",
 				newPort:      15904,
-				expected: &healthProbe{
+				expected: &HealthProbe{
 					port:        3456,
 					isHTTP:      false,
 					isTCPSocket: true,

@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"fmt"
 	"path/filepath"
 
 	xds_accesslog_config "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
@@ -13,11 +14,13 @@ import (
 	xds_upstream_http "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/golang/protobuf/ptypes/any"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 const (
@@ -54,6 +57,38 @@ var (
 	envoyXDSKeyPath    = filepath.Join(EnvoyProxyConfigPath, EnvoyXDSKeyFile)
 	envoyXDSCACertPath = filepath.Join(EnvoyProxyConfigPath, EnvoyXDSCACertFile)
 )
+
+func GetTLSSDSConfigYAML() ([]byte, error) {
+	tlsSDSConfig, err := BuildTLSSecret()
+	if err != nil {
+		log.Error().Err(err).Msgf("Error building Envoy TLS Certificate SDS Config")
+		return nil, err
+	}
+
+	configYAML, err := utils.ProtoToYAML(tlsSDSConfig)
+	if err != nil {
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingProtoToYAML)).
+			Msgf("Failed to marshal Envoy TLS Certificate SDS Config to yaml")
+		return nil, err
+	}
+	return configYAML, nil
+}
+
+func GetValidationContextSDSConfigYAML() ([]byte, error) {
+	validationContextSDSConfig, err := BuildValidationSecret()
+	if err != nil {
+		log.Error().Err(err).Msgf("Error building Envoy Validation Context SDS Config")
+		return nil, err
+	}
+
+	configYAML, err := utils.ProtoToYAML(validationContextSDSConfig)
+	if err != nil {
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingProtoToYAML)).
+			Msgf("Failed to marshal Envoy Validation Context SDS Config to yaml")
+		return nil, err
+	}
+	return configYAML, nil
+}
 
 // BuildTLSSecret builds and returns an Envoy Discovery Response object for Envoy's xDS TLS
 // Certificate
@@ -112,8 +147,14 @@ func BuildValidationSecret() (*xds_discovery.DiscoveryResponse, error) {
 	}, nil
 }
 
-// BuildFromConfig builds and returns an Envoy Bootstrap object from the given config
-func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
+// Build builds and returns an Envoy Bootstrap object from the given config
+func (b *Builder) Build() ([]byte, error) {
+	if b.prevConfig != nil {
+		conf := proto.Clone(b.prevConfig).(*xds_bootstrap.Bootstrap)
+		conf.Node.Id = b.Certificate.GetCommonName().String()
+		return utils.ProtoToYAML(conf)
+	}
+
 	httpProtocolOptions := &xds_upstream_http.HttpProtocolOptions{
 		UpstreamProtocolOptions: &xds_upstream_http.HttpProtocolOptions_ExplicitHttpConfig_{
 			ExplicitHttpConfig: &xds_upstream_http.HttpProtocolOptions_ExplicitHttpConfig{
@@ -136,8 +177,8 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 		return nil, err
 	}
 
-	minVersionInt := xds_transport_sockets.TlsParameters_TlsProtocol_value[config.TLSMinProtocolVersion]
-	maxVersionInt := xds_transport_sockets.TlsParameters_TlsProtocol_value[config.TLSMaxProtocolVersion]
+	minVersionInt := xds_transport_sockets.TlsParameters_TlsProtocol_value[b.TLSMinProtocolVersion]
+	maxVersionInt := xds_transport_sockets.TlsParameters_TlsProtocol_value[b.TLSMaxProtocolVersion]
 	tlsMinVersion := xds_transport_sockets.TlsParameters_TlsProtocol(minVersionInt)
 	tlsMaxVersion := xds_transport_sockets.TlsParameters_TlsProtocol(maxVersionInt)
 
@@ -159,8 +200,8 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 			TlsParams: &xds_transport_sockets.TlsParameters{
 				TlsMinimumProtocolVersion: tlsMinVersion,
 				TlsMaximumProtocolVersion: tlsMaxVersion,
-				CipherSuites:              config.CipherSuites,
-				EcdhCurves:                config.ECDHCurves,
+				CipherSuites:              b.CipherSuites,
+				EcdhCurves:                b.ECDHCurves,
 			},
 			TlsCertificateSdsSecretConfigs: []*xds_transport_sockets.SdsSecretConfig{
 				{
@@ -183,7 +224,7 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 
 	bootstrap := &xds_bootstrap.Bootstrap{
 		Node: &xds_core.Node{
-			Id: config.NodeID,
+			Id: b.Certificate.CommonName.String(),
 		},
 		Admin: &xds_bootstrap.Admin{
 			AccessLog: []*xds_accesslog_config.AccessLog{
@@ -199,7 +240,7 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 					SocketAddress: &xds_core.SocketAddress{
 						Address: constants.LocalhostIPAddress,
 						PortSpecifier: &xds_core.SocketAddress_PortValue{
-							PortValue: config.AdminPort,
+							PortValue: constants.EnvoyAdminPort,
 						},
 					},
 				},
@@ -213,7 +254,7 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 					{
 						TargetSpecifier: &xds_core.GrpcService_EnvoyGrpc_{
 							EnvoyGrpc: &xds_core.GrpcService_EnvoyGrpc{
-								ClusterName: config.XDSClusterName,
+								ClusterName: constants.OSMControllerName,
 							},
 						},
 					},
@@ -236,7 +277,7 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 		StaticResources: &xds_bootstrap.Bootstrap_StaticResources{
 			Clusters: []*xds_cluster.Cluster{
 				{
-					Name: config.XDSClusterName,
+					Name: constants.OSMControllerName,
 					ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 						Type: xds_cluster.Cluster_LOGICAL_DNS,
 					},
@@ -251,7 +292,7 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 					},
 					LbPolicy: xds_cluster.Cluster_ROUND_ROBIN,
 					LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
-						ClusterName: config.XDSClusterName,
+						ClusterName: constants.OSMControllerName,
 						Endpoints: []*xds_endpoint.LocalityLbEndpoints{
 							{
 								LbEndpoints: []*xds_endpoint.LbEndpoint{
@@ -261,9 +302,9 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 												Address: &xds_core.Address{
 													Address: &xds_core.Address_SocketAddress{
 														SocketAddress: &xds_core.SocketAddress{
-															Address: config.XDSHost,
+															Address: fmt.Sprintf("%s.%s.svc.cluster.local", constants.OSMControllerName, b.OSMNamespace),
 															PortSpecifier: &xds_core.SocketAddress_PortValue{
-																PortValue: config.XDSPort,
+																PortValue: constants.ADSServerPort,
 															},
 														},
 													},
@@ -280,5 +321,12 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 		},
 	}
 
-	return bootstrap, nil
+	probeListeners, probeClusters, err := b.getProbeResources()
+	if err != nil {
+		return nil, err
+	}
+	bootstrap.StaticResources.Listeners = append(bootstrap.StaticResources.Listeners, probeListeners...)
+	bootstrap.StaticResources.Clusters = append(bootstrap.StaticResources.Clusters, probeClusters...)
+
+	return utils.ProtoToYAML(bootstrap)
 }
