@@ -19,7 +19,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/identity"
-	kubefake "github.com/openservicemesh/osm/pkg/providers/kube/fake"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -37,7 +36,7 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 	a.Nil(err)
 	a.NotNil(proxy)
 
-	proxyRegistry := registry.NewProxyRegistry(kubefake.NewFakeProvider(), nil)
+	proxyRegistry := registry.New()
 
 	// ---[  Get the config from rds.NewResponse()  ]-------
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()

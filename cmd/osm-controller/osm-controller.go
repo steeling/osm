@@ -253,8 +253,7 @@ func main() {
 		msgBroker,
 	)
 
-	proxyRegistry := registry.NewProxyRegistry(kubeProvider, msgBroker)
-	go proxyRegistry.ReleaseCertificateHandler(certManager, stop)
+	proxyRegistry := registry.New()
 
 	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, certificate.Internal)
 	if err != nil {

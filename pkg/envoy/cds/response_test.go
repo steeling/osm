@@ -411,7 +411,7 @@ func TestNewResponse(t *testing.T) {
 
 func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()
-	proxyRegistry := registry.NewProxyRegistry(kubefake.NewFakeProvider(), nil)
+	proxyRegistry := registry.New()
 
 	proxyUUID := uuid.New()
 	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil)
@@ -441,7 +441,7 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 
 func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()
-	proxyRegistry := registry.NewProxyRegistry(kubefake.NewFakeProvider(), nil)
+	proxyRegistry := registry.New()
 	proxyUUID := uuid.New()
 	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil)
 

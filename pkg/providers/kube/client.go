@@ -9,6 +9,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -134,6 +135,26 @@ func (c *client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdent
 
 	log.Trace().Msgf("[%s] Services for service account %s: %v", c.GetID(), svcAccount, meshServices)
 	return meshServices
+}
+
+// GetServicesForProxy returns services specific to this proxy. It is slightly different from
+// GetServicesForServiceIdentity in that an identity can apply to different pods that have different service selectors.
+// Additionally, we must filter out services that may be specific to a pod (in the case of headless services).
+func (c *client) GetServicesForProxy(proxy *envoy.Proxy) ([]service.MeshService, error) {
+	var meshServices []service.MeshService
+	pod, err := c.kubeController.GetPodForProxy(proxy)
+	if err != nil {
+		return nil, err
+	}
+	meshServicesForPod := c.getServicesByLabels(pod.ObjectMeta.Labels, pod.Namespace)
+	for _, svc := range meshServicesForPod {
+		// If this is a headless service, all the other services pointing to other pods will be in meshServicesForPod,
+		// so we filter those out.
+		if svc.Subdomain() == "" || svc.Subdomain() == pod.Name {
+			meshServices = append(meshServices, svc)
+		}
+	}
+	return meshServices, nil
 }
 
 // getServicesByLabels gets Kubernetes services whose selectors match the given labels

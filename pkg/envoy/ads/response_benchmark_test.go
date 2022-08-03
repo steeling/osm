@@ -28,7 +28,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/providers/kube"
-	kubefake "github.com/openservicemesh/osm/pkg/providers/kube/fake"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -126,7 +125,7 @@ func setupTestServer(b *testing.B) {
 		msgBroker,
 	)
 
-	proxyRegistry := registry.NewProxyRegistry(kubefake.NewFakeProvider(), nil)
+	proxyRegistry := registry.New()
 
 	pod := tests.NewPodFixture(namespace, fmt.Sprintf("pod-0-%s", proxyUUID), tests.BookstoreServiceAccountName, tests.PodLabels)
 	pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()

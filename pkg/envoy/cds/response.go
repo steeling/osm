@@ -26,7 +26,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 
 	// Build local clusters based on allowed inbound traffic policies
-	proxyServices := proxyRegistry.GetServicesForServiceIdentity(proxy.Identity)
+	proxyServices := mc.GetServicesForProxy(proxy)
 	inboundMeshTrafficPolicy := meshCatalog.GetInboundMeshTrafficPolicy(proxy.Identity, proxyServices)
 	if inboundMeshTrafficPolicy != nil {
 		clusters = append(clusters, localClustersFromClusterConfigs(inboundMeshTrafficPolicy.ClustersConfigs)...)

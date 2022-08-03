@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/envoy"
 
 	"github.com/openservicemesh/osm/pkg/identity"
 )
@@ -155,4 +156,7 @@ type Provider interface {
 
 	// GetID returns the unique identifier of the Provider
 	GetID() string
+
+	// GetServicesForProxy returns services specific to a proxy.
+	GetServicesForProxy(proxy *envoy.Proxy) ([]MeshService, error)
 }

@@ -3,7 +3,6 @@ package registry
 import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -12,12 +11,10 @@ type ProxyServiceMapper interface {
 	GetServicesForServiceIdentity(svcIdentity identity.ServiceIdentity) []service.MeshService
 }
 
-// NewProxyRegistry initializes a new empty *ProxyRegistry.
-func NewProxyRegistry(mapper ProxyServiceMapper, msgBroker *messaging.Broker) *ProxyRegistry {
+// New initializes a new empty *ProxyRegistry.
+func New() *ProxyRegistry {
 	return &ProxyRegistry{
-		ProxyServiceMapper: mapper,
-		msgBroker:          msgBroker,
-		connectedProxies:   make(map[string]*envoy.Proxy),
+		connectedProxies: make(map[string]*envoy.Proxy),
 	}
 }
 

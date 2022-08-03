@@ -13,42 +13,26 @@ type Provider interface {
 	service.Provider
 }
 
-type providerOption func(c *fakeClient)
-
-// WithDefaultDemo adds some default demo data to the provider.
-func WithDefaultDemo(c *fakeClient) {
-	c.endpoints[tests.BookstoreV1Service.String()] = append(c.endpoints[tests.BookstoreV1Service.String()], tests.Endpoint)
-	c.endpoints[tests.BookstoreV2Service.String()] = append(c.endpoints[tests.BookstoreV2Service.String()], tests.Endpoint)
-	c.endpoints[tests.BookbuyerService.String()] = append(c.endpoints[tests.BookbuyerService.String()], tests.Endpoint)
-	c.endpoints[tests.BookstoreApexService.String()] = append(c.endpoints[tests.BookstoreApexService.String()], tests.Endpoint)
-
-	c.services[tests.BookstoreServiceIdentity] = append(c.services[tests.BookstoreServiceIdentity], tests.BookstoreV1Service, tests.BookstoreApexService)
-	c.services[tests.BookstoreV2ServiceIdentity] = append(c.services[tests.BookstoreV2ServiceIdentity], tests.BookstoreV2Service)
-	c.services[tests.BookbuyerServiceIdentity] = append(c.services[tests.BookbuyerServiceIdentity], tests.BookbuyerService)
-
-	c.svcAccountEndpoints[tests.BookstoreServiceIdentity] = append(c.svcAccountEndpoints[tests.BookstoreServiceIdentity], tests.Endpoint, tests.Endpoint)
-	c.svcAccountEndpoints[tests.BookstoreV2ServiceIdentity] = append(c.svcAccountEndpoints[tests.BookstoreV2ServiceIdentity], tests.Endpoint)
-	c.svcAccountEndpoints[tests.BookbuyerServiceIdentity] = append(c.svcAccountEndpoints[tests.BookbuyerServiceIdentity], tests.Endpoint)
-}
-
-// WithIdentityServiceMapping adds a mapping between a service and a service identity.
-func WithIdentityServiceMapping(si identity.ServiceIdentity, svcs []service.MeshService) providerOption {
-	return func(c *fakeClient) {
-		c.services[si] = append(c.services[si], svcs...)
-	}
-}
-
 // NewFakeProvider implements mesh.EndpointsProvider, which creates a test Kubernetes cluster/compute provider.
-func NewFakeProvider(opts ...providerOption) Provider {
-	c := &fakeClient{
-		endpoints:           map[string][]endpoint.Endpoint{},
-		services:            map[identity.ServiceIdentity][]service.MeshService{},
-		svcAccountEndpoints: map[identity.ServiceIdentity][]endpoint.Endpoint{},
+func NewFakeProvider() Provider {
+	return &fakeClient{
+		endpoints: map[string][]endpoint.Endpoint{
+			tests.BookstoreV1Service.String():   {tests.Endpoint},
+			tests.BookstoreV2Service.String():   {tests.Endpoint},
+			tests.BookbuyerService.String():     {tests.Endpoint},
+			tests.BookstoreApexService.String(): {tests.Endpoint},
+		},
+		services: map[identity.ServiceIdentity][]service.MeshService{
+			tests.BookstoreServiceIdentity:   {tests.BookstoreV1Service, tests.BookstoreApexService},
+			tests.BookstoreV2ServiceIdentity: {tests.BookstoreV2Service},
+			tests.BookbuyerServiceIdentity:   {tests.BookbuyerService},
+		},
+		svcAccountEndpoints: map[identity.ServiceIdentity][]endpoint.Endpoint{
+			tests.BookstoreServiceIdentity:   {tests.Endpoint, tests.Endpoint},
+			tests.BookstoreV2ServiceIdentity: {tests.Endpoint},
+			tests.BookbuyerServiceIdentity:   {tests.Endpoint},
+		},
 	}
-	for _, o := range opts {
-		o(c)
-	}
-	return c
 }
 
 type fakeClient struct {
