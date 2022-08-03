@@ -25,10 +25,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
-	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
-	kubefake "github.com/openservicemesh/osm/pkg/providers/kube/fake"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -240,8 +238,7 @@ func TestRDSRespose(t *testing.T) {
 				EnableWASMStats: false,
 			}).AnyTimes()
 
-			proxyRegistry := registry.NewProxyRegistry(kubefake.NewFakeProvider(kubefake.WithIdentityServiceMapping(proxy.Identity, []service.MeshService{tests.BookstoreV1Service})), nil)
-
+			mockCatalog.EXPECT().GetServicesForProxy(proxy).Return([]service.MeshService{tests.BookstoreV1Service}, nil).AnyTimes()
 			outboundTestPort := 8888 // Port used for the outbound services in this test
 			inboundTestPort := 80    // Port used for the inbound services in this test
 			expectedInboundMeshPolicy := &trafficpolicy.InboundMeshTrafficPolicy{HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{inboundTestPort: tc.expectedInboundPolicies}}
@@ -253,7 +250,7 @@ func TestRDSRespose(t *testing.T) {
 
 			cm := tresorFake.NewFake(1 * time.Hour)
 
-			resources, err := rds.NewResponse(mockCatalog, proxy, nil, mockConfigurator, cm, proxyRegistry)
+			resources, err := rds.NewResponse(mockCatalog, proxy, nil, mockConfigurator, cm, nil)
 			assert.Nil(err)
 			assert.NotNil(resources)
 

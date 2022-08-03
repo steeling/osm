@@ -16,7 +16,7 @@ import (
 )
 
 // NewResponse creates a new Route Discovery Response.
-func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryReq *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, cm *certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
+func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryReq *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, cm *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
 	var rdsResources []types.Resource
 	proxyServices := cataloger.GetServicesForProxy(proxy)
 	trustDomain := cm.GetTrustDomain()

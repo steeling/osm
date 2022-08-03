@@ -2,6 +2,7 @@ package fake
 
 import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -81,4 +82,9 @@ func (f *fakeClient) GetID() string {
 
 func (f *fakeClient) GetResolvableEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
 	return f.endpoints[svc.String()]
+}
+
+func (f *fakeClient) GetServicesForProxy(proxy *envoy.Proxy) ([]service.MeshService, error) {
+	// It's the same here since there are no unique pods.
+	return f.GetServicesForServiceIdentity(proxy.Identity), nil
 }

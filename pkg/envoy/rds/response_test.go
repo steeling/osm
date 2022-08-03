@@ -26,10 +26,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
-	kubefake "github.com/openservicemesh/osm/pkg/providers/kube/fake"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -264,7 +262,7 @@ func TestNewResponse(t *testing.T) {
 			proxy, err := getBookstoreV1Proxy(kubeClient)
 			assert.Nil(err)
 
-			proxyRegistry := registry.NewProxyRegistry(kubefake.NewFakeProvider(kubefake.WithIdentityServiceMapping(proxy.Identity, []service.MeshService{tests.BookstoreV1Service})), nil)
+			mockCatalog.EXPECT().GetServicesForProxy(proxy).Return([]service.MeshService{tests.BookstoreV1Service}, nil)
 
 			for _, meshSvc := range tc.meshServices {
 				k8sService := tests.NewServiceFixture(meshSvc.Name, meshSvc.Namespace, map[string]string{})
@@ -296,7 +294,7 @@ func TestNewResponse(t *testing.T) {
 
 			mc := tresorFake.NewFake(1 * time.Hour)
 
-			resources, err := NewResponse(mockCatalog, proxy, &discoveryRequest, mockConfigurator, mc, proxyRegistry)
+			resources, err := NewResponse(mockCatalog, proxy, &discoveryRequest, mockConfigurator, mc, nil)
 			assert.Nil(err)
 			assert.NotNil(resources)
 
@@ -437,7 +435,7 @@ func TestResponseRequestCompletion(t *testing.T) {
 	uuid := uuid.New()
 	testProxy := envoy.NewProxy(envoy.KindSidecar, uuid, identity.New("some-service", "some-namespace"), nil)
 
-	proxyRegistry := registry.NewProxyRegistry(kubefake.NewFakeProvider(kubefake.WithIdentityServiceMapping(testProxy.Identity, []service.MeshService{tests.BookstoreV1Service})), nil)
+	mockCatalog.EXPECT().GetServicesForProxy(testProxy).Return([]service.MeshService{tests.BookstoreV1Service}, nil)
 
 	mc := tresorFake.NewFake(1 * time.Hour)
 
@@ -474,7 +472,7 @@ func TestResponseRequestCompletion(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		resources, err := NewResponse(mockCatalog, testProxy, tc.request, mockConfigurator, mc, proxyRegistry)
+		resources, err := NewResponse(mockCatalog, testProxy, tc.request, mockConfigurator, mc, nil)
 		assert.Nil(err)
 
 		if tc.request != nil {

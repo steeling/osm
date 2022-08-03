@@ -18,7 +18,7 @@ import (
 // 1. Inbound listener to handle incoming traffic
 // 2. Outbound listener to handle outgoing traffic
 // 3. Prometheus listener for metrics
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, cm *certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, cm *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
 	var ldsResources []types.Resource
 
 	var statsHeaders map[string]string
@@ -45,7 +45,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	// --- INBOUND -------------------
 	inboundListener := newInboundListener()
 
-	svcList := proxyRegistry.GetServicesForServiceIdentity(proxy.Identity)
+	svcList := meshCatalog.GetServicesForProxy(proxy)
 
 	// Create inbound mesh filter chains based on mesh traffic policies
 	inboundMeshTrafficPolicy := meshCatalog.GetInboundMeshTrafficPolicy(lb.serviceIdentity, svcList)

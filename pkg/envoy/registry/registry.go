@@ -2,14 +2,7 @@ package registry
 
 import (
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/service"
 )
-
-// ProxyServiceMapper knows how to map Envoy instances to services.
-type ProxyServiceMapper interface {
-	GetServicesForServiceIdentity(svcIdentity identity.ServiceIdentity) []service.MeshService
-}
 
 // New initializes a new empty *ProxyRegistry.
 func New() *ProxyRegistry {

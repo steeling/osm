@@ -22,12 +22,9 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
-	kubefake "github.com/openservicemesh/osm/pkg/providers/kube/fake"
-	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -94,10 +91,8 @@ func TestNewResponse(t *testing.T) {
 	mockController := meshCatalog.GetKubeController().(*k8s.MockController)
 	mockController.EXPECT().GetPodForProxy(proxy).Return(pod, nil)
 
-	proxyRegistry := registry.NewProxyRegistry(kubefake.NewFakeProvider(kubefake.WithIdentityServiceMapping(proxy.Identity, []service.MeshService{tests.BookbuyerService})), nil)
-
 	cm := tresorFake.NewFake(1 * time.Hour)
-	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, cm, proxyRegistry)
+	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, cm, nil)
 	assert.Empty(err)
 	assert.NotNil(resources)
 	// There are 3 listeners configured based on the configuration:

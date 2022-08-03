@@ -28,11 +28,9 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
-	kubefake "github.com/openservicemesh/osm/pkg/providers/kube/fake"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -67,7 +65,7 @@ func TestNewResponse(t *testing.T) {
 		},
 	}
 
-	proxyRegistry := registry.NewProxyRegistry(kubefake.NewFakeProvider(kubefake.WithIdentityServiceMapping(proxy.Identity, []service.MeshService{testMeshSvc})), nil)
+	mockCatalog.EXPECT().GetServicesForProxy(proxy).Return([]service.MeshService{testMeshSvc}, nil).AnyTimes()
 
 	expectedOutboundMeshPolicy := &trafficpolicy.OutboundMeshTrafficPolicy{
 		ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
@@ -118,7 +116,7 @@ func TestNewResponse(t *testing.T) {
 
 	mockKubeController.EXPECT().GetPodForProxy(proxy).Return(newPod1, nil)
 
-	resp, err := NewResponse(mockCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
+	resp, err := NewResponse(mockCatalog, proxy, nil, mockConfigurator, nil, nil)
 	assert.Nil(err)
 
 	// There are to any.Any resources in the ClusterDiscoveryStruct (Clusters)
@@ -411,7 +409,6 @@ func TestNewResponse(t *testing.T) {
 
 func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()
-	proxyRegistry := registry.New()
 
 	proxyUUID := uuid.New()
 	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil)
@@ -434,14 +431,13 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	})
 	mockKubeController.EXPECT().GetPodForProxy(proxy).Return(pod, nil)
 
-	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
+	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, nil)
 	tassert.NoError(t, err)
 	tassert.Empty(t, resp)
 }
 
 func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()
-	proxyRegistry := registry.New()
 	proxyUUID := uuid.New()
 	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil)
 
@@ -467,7 +463,7 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	})
 	mockKubeController.EXPECT().GetPodForProxy(proxy).Return(pod, nil)
 
-	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
+	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, nil)
 	tassert.NoError(t, err)
 	tassert.Len(t, resp, 1)
 	tassert.Equal(t, resp[0].(*xds_cluster.Cluster).Name, "my-cluster")
