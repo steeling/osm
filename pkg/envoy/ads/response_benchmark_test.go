@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	mapset "github.com/deckarep/golang-set"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
@@ -29,7 +28,6 @@ import (
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	policyFake "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
-	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -95,10 +93,6 @@ func setupTestServer(b *testing.B) {
 
 	// --- setup
 	namespace := tests.Namespace
-	proxyService := service.MeshService{
-		Name:      tests.BookstoreV1ServiceName,
-		Namespace: namespace,
-	}
 	proxySvcAccount := tests.BookstoreServiceAccount
 
 	certPEM, _ := certManager.IssueCertificate(proxySvcAccount.ToServiceIdentity().String(), certificate.Service)
@@ -136,7 +130,7 @@ func setupTestServer(b *testing.B) {
 		b.Fatalf("Failed to add namespace to informer collection: %s", err)
 	}
 
-	svc := tests.NewServiceFixture(proxyService.Name, namespace, labels)
+	svc := tests.NewServiceFixture(tests.BookstoreV1ServiceName, namespace, labels)
 	_, err = kubeClient.CoreV1().Services(namespace).Create(context.Background(), svc, metav1.CreateOptions{})
 	if err != nil {
 		b.Fatalf("Failed to create service: %v", err)
@@ -164,13 +158,11 @@ func BenchmarkSendXDSResponse(b *testing.B) {
 		b.Run(string(xdsType), func(b *testing.B) {
 			setupTestServer(b)
 
-			// Set subscribed resources
-			proxy.SetSubscribedResources(xdsType, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound"))
-
 			b.ResetTimer()
 			b.StartTimer()
 			for i := 0; i < b.N; i++ {
-				if err := adsServer.sendResponse(proxy, &server, nil, xdsType); err != nil {
+				handler := adsServer.xdsHandlers[xdsType]
+				if _, err := handler(adsServer.catalog, proxy, adsServer.certManager, adsServer.proxyRegistry); err != nil {
 					b.Fatalf("Failed to send response: %s", err)
 				}
 			}
