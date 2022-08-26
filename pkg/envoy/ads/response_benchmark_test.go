@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	mapset "github.com/deckarep/golang-set"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
@@ -166,9 +165,6 @@ func BenchmarkSendXDSResponse(b *testing.B) {
 	for _, xdsType := range testingXdsTypes {
 		b.Run(string(xdsType), func(b *testing.B) {
 			setupTestServer(b)
-
-			// Set subscribed resources
-			proxy.SetSubscribedResources(xdsType, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound:default/bookstore|80"))
 
 			b.ResetTimer()
 			b.StartTimer()

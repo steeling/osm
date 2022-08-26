@@ -278,13 +278,9 @@ func TestNewResponse(t *testing.T) {
 			mockCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 			mockCatalog.EXPECT().ListServicesForProxy(proxy).Return([]service.MeshService{tests.BookstoreV1Service}, nil).AnyTimes()
 			// Empty discovery request
-			discoveryRequest := xds_discovery.DiscoveryRequest{
-				ResourceNames: []string{},
-			}
-
 			mc := tresorFake.NewFake(1 * time.Hour)
 
-			resources, err := NewResponse(mockCatalog, proxy, &discoveryRequest, mc, nil)
+			resources, err := NewResponse(mockCatalog, proxy, mc, nil)
 			assert.Nil(err)
 			assert.NotNil(resources)
 
@@ -457,7 +453,7 @@ func TestResponseRequestCompletion(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		resources, err := NewResponse(mockCatalog, testProxy, tc.request, mc, nil)
+		resources, err := NewResponse(mockCatalog, testProxy, mc, nil)
 		assert.Nil(err)
 
 		if tc.request != nil {

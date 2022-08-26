@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -72,9 +71,6 @@ var _ = Describe("Test ADS response functions", func() {
 			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, fakeCertManager, kubectrlMock, nil)
 
 			Expect(s).ToNot(BeNil())
-
-			// Set subscribed resources for SDS
-			proxy.SetSubscribedResources(envoy.TypeSDS, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound:default/bookstore"))
 
 			err := s.sendResponse(proxy, &server, nil, envoy.XDSResponseOrder...)
 			Expect(err).To(BeNil())
@@ -148,9 +144,6 @@ var _ = Describe("Test ADS response functions", func() {
 			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, fakeCertManager, kubectrlMock, nil)
 
 			Expect(s).ToNot(BeNil())
-
-			// Set subscribed resources
-			proxy.SetSubscribedResources(envoy.TypeSDS, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound:default/bookstore"))
 
 			err := s.sendResponse(proxy, &server, nil, envoy.TypeSDS)
 			Expect(err).To(BeNil())

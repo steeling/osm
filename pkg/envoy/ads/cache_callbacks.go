@@ -71,11 +71,10 @@ func (s *Server) OnStreamOpen(ctx context.Context, streamID int64, typ string) e
 }
 
 func (s *Server) update(proxy *envoy.Proxy) {
-	ch := s.workqueues.AddJob(&proxyResponseJob{
-		proxy:     proxy,
-		xdsServer: s,
-		typeURIs:  envoy.XDSResponseOrder,
-		done:      make(chan struct{}),
+	ch := make(chan struct{})
+	s.workqueues.AddJob(&proxyResponseJob{
+		proxy: proxy,
+		done:  ch,
 	})
 	<-ch
 	close(ch)

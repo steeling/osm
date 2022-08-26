@@ -41,7 +41,7 @@ func NewADSServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.Pro
 	server := Server{
 		catalog:       meshCatalog,
 		proxyRegistry: proxyRegistry,
-		xdsHandlers: map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, *certificate.Manager, *registry.ProxyRegistry) ([]types.Resource, error){
+		xdsHandlers: map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *certificate.Manager, *registry.ProxyRegistry) ([]types.Resource, error){
 			envoy.TypeEDS: eds.NewResponse,
 			envoy.TypeCDS: cds.NewResponse,
 			envoy.TypeRDS: rds.NewResponse,
@@ -53,7 +53,6 @@ func NewADSServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.Pro
 		xdsLog:         make(map[string]map[envoy.TypeURI][]time.Time),
 		workqueues:     workerpool.NewWorkerPool(workerPoolSize),
 		kubecontroller: kubecontroller,
-		cacheEnabled:   meshCatalog.GetMeshConfig().Spec.FeatureFlags.EnableSnapshotCacheMode,
 		configVersion:  make(map[string]uint64),
 		msgBroker:      msgBroker,
 	}
@@ -75,24 +74,13 @@ func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port int,
 		return fmt.Errorf("error starting ADS server: %w", err)
 	}
 
-	if s.cacheEnabled {
-		s.snapshotCache = cachev3.NewSnapshotCache(false, cachev3.IDHash{}, &scLogger{})
-		xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer.GetServer(), serverv3.NewServer(ctx, s.snapshotCache, s))
-	} else {
-		xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer.GetServer(), s)
-	}
+	s.snapshotCache = cachev3.NewSnapshotCache(false, cachev3.IDHash{}, &scLogger{})
+	xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer.GetServer(), serverv3.NewServer(ctx, s.snapshotCache, s))
 
 	err = grpcServer.GrpcServe(ctx, cancel, lis, nil)
 	if err != nil {
 		return fmt.Errorf("error starting ADS server: %w", err)
 	}
 
-	s.ready = true
-
 	return nil
-}
-
-// DeltaAggregatedResources implements discovery.AggregatedDiscoveryServiceServer
-func (s *Server) DeltaAggregatedResources(xds_discovery.AggregatedDiscoveryService_DeltaAggregatedResourcesServer) error {
-	panic("NotImplemented")
 }

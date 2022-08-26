@@ -28,8 +28,8 @@ type Job interface {
 	// Run executes the job.
 	Run()
 
-	// GetDoneCh returns the channel, which when closed, indicates that the job was finished.
-	GetDoneCh() chan struct{}
+	// Done returns the channel, which when closed, indicates that the job was finished.
+	Done() chan struct{}
 }
 
 // NewWorkerPool creates a new work group.
@@ -60,9 +60,8 @@ func NewWorkerPool(nWorkers int) *WorkerPool {
 
 // AddJob posts the job on a worker queue
 // Uses Hash underneath to choose worker to post the job to
-func (wp *WorkerPool) AddJob(job Job) chan struct{} {
+func (wp *WorkerPool) AddJob(job Job) {
 	wp.jobs <- job
-	return job.GetDoneCh()
 }
 
 // GetWorkerNumber get number of queues/workers

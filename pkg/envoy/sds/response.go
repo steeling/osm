@@ -3,7 +3,6 @@ package sds
 import (
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
-	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
@@ -17,7 +16,7 @@ import (
 )
 
 // NewResponse creates a new Secrets Discovery Response.
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, certManager *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, certManager *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
 	log.Info().Str("proxy", proxy.String()).Msg("Composing SDS Discovery Response")
 
 	// OSM currently relies on kubernetes ServiceAccount for service identity
@@ -29,9 +28,6 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 	}
 
 	var sdsResources []types.Resource
-
-	// The DiscoveryRequest contains the requested certs
-	requestedCerts := request.ResourceNames
 
 	log.Info().Str("proxy", proxy.String()).Msgf("Creating SDS response for request for resources %v", requestedCerts)
 
