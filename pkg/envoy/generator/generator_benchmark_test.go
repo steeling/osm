@@ -1,11 +1,10 @@
-package ads
+package generator
 
 import (
 	"context"
 	"fmt"
 	"testing"
 
-	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,13 +30,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-var (
-	proxy     *envoy.Proxy
-	server    xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer
-	adsServer *Server
-)
-
-func setupTestServer(b *testing.B) {
+func setupTestGenerator(b *testing.B) (*envoy.Proxy, *EnvoyConfigGenerator) {
 	stop := signals.RegisterExitHandlers()
 	msgBroker := messaging.NewBroker(stop)
 	kubeClient := k8sClientFake.NewSimpleClientset()
@@ -95,10 +88,6 @@ func setupTestServer(b *testing.B) {
 	namespace := tests.Namespace
 	proxySvcAccount := tests.BookstoreServiceAccount
 
-	certPEM, _ := certManager.IssueCertificate(proxySvcAccount.ToServiceIdentity().String(), certificate.Service)
-	cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
-	server, _ = tests.NewFakeXDSServer(cert, nil, nil)
-
 	proxyUUID := uuid.New()
 	labels := map[string]string{constants.EnvoyUniqueIDLabelName: proxyUUID.String()}
 	meshSpec := smi.NewSMIClient(informerCollection, tests.OsmNamespace, kubeController, msgBroker)
@@ -136,33 +125,25 @@ func setupTestServer(b *testing.B) {
 		b.Fatalf("Failed to create service: %v", err)
 	}
 
-	proxy = envoy.NewProxy(envoy.KindSidecar, proxyUUID, proxySvcAccount.ToServiceIdentity(), nil, 1)
+	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, proxySvcAccount.ToServiceIdentity(), nil, 1)
 
-	adsServer = NewADSServer(mc, proxyRegistry, true, tests.Namespace, certManager, kubeController, nil)
+	return proxy, NewEnvoyConfigGenerator(mc, certManager, proxyRegistry)
 }
 
 func BenchmarkSendXDSResponse(b *testing.B) {
-	// TODO(allenlsy): Add EDS to the list
-	testingXdsTypes := []envoy.TypeURI{
-		envoy.TypeLDS,
-		envoy.TypeSDS,
-		envoy.TypeRDS,
-		envoy.TypeCDS,
-	}
-
 	if err := logger.SetLogLevel("error"); err != nil {
 		b.Logf("Failed to set log level to error: %s", err)
 	}
 
-	for _, xdsType := range testingXdsTypes {
+	proxy, g := setupTestGenerator(b)
+
+	for xdsType, generator := range g.generators {
 		b.Run(string(xdsType), func(b *testing.B) {
-			setupTestServer(b)
 
 			b.ResetTimer()
 			b.StartTimer()
 			for i := 0; i < b.N; i++ {
-				handler := adsServer.xdsHandlers[xdsType]
-				if _, err := handler(adsServer.catalog, proxy, adsServer.certManager, adsServer.proxyRegistry); err != nil {
+				if _, err := generator(context.Background(), proxy); err != nil {
 					b.Fatalf("Failed to send response: %s", err)
 				}
 			}

@@ -25,9 +25,9 @@ const (
 	// OutboundListenerName is the name of the listener used for outbound traffic
 	OutboundListenerName = "outbound-listener"
 
-	prometheusListenerName        = "inbound-prometheus-listener"
-	outboundEgressFilterChainName = "outbound-egress-filter-chain"
-	egressTCPProxyStatPrefix      = "egress-tcp-proxy"
+	PrometheusListenerName        = "inbound-prometheus-listener"
+	OutboundEgressFilterChainName = "outbound-egress-filter-chain"
+	EgressTCPProxyStatPrefix      = "egress-tcp-proxy"
 )
 
 func buildPrometheusListener(connManager *xds_hcm.HttpConnectionManager) (*xds_listener.Listener, error) {
@@ -39,7 +39,7 @@ func buildPrometheusListener(connManager *xds_hcm.HttpConnectionManager) (*xds_l
 	}
 
 	return &xds_listener.Listener{
-		Name:             prometheusListenerName,
+		Name:             PrometheusListenerName,
 		TrafficDirection: xds_core.TrafficDirection_INBOUND,
 		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyPrometheusInboundListenerPort),
 		FilterChains: []*xds_listener.FilterChain{
@@ -61,12 +61,12 @@ func buildPrometheusListener(connManager *xds_hcm.HttpConnectionManager) (*xds_l
 // traffic to be proxied to its original destination via the OutboundPassthroughCluster.
 func getDefaultPassthroughFilterChain() *xds_listener.FilterChain {
 	tcpProxy := &xds_tcp_proxy.TcpProxy{
-		StatPrefix:       fmt.Sprintf("%s.%s", egressTCPProxyStatPrefix, envoy.OutboundPassthroughCluster),
+		StatPrefix:       fmt.Sprintf("%s.%s", EgressTCPProxyStatPrefix, envoy.OutboundPassthroughCluster),
 		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: envoy.OutboundPassthroughCluster},
 	}
 
 	return &xds_listener.FilterChain{
-		Name: outboundEgressFilterChainName,
+		Name: OutboundEgressFilterChainName,
 		Filters: []*xds_listener.Filter{
 			{
 				Name:       envoy.TCPProxyFilterName,

@@ -1,4 +1,4 @@
-package ads
+package osm
 
 import (
 	"fmt"

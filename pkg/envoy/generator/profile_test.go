@@ -1,4 +1,4 @@
-package ads
+package generator
 
 import (
 	"testing"
@@ -16,10 +16,10 @@ func TestGetXDSLog(t *testing.T) {
 	testXDSLog["abra"] = make(map[envoy.TypeURI][]time.Time)
 	testXDSLog["abra"]["cadabra"] = []time.Time{time.Now()}
 
-	s := Server{
+	g := EnvoyConfigGenerator{
 		xdsLog: testXDSLog,
 	}
 
-	res := s.GetXDSLog()
+	res := g.GetXDSLog()
 	assert.Equal(res, testXDSLog)
 }

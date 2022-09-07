@@ -1,6 +1,7 @@
 package lds
 
 import (
+	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/golang/protobuf/ptypes/any"
@@ -13,6 +14,10 @@ const (
 	prometheusHTTPConnManagerStatPrefix = "prometheus-http-conn-manager"
 	prometheusInboundVirtualHostName    = "prometheus-inbound-virtual-host"
 )
+
+func BuildPrometheusListener() (*xds_listener.Listener, error) {
+	return buildPrometheusListener(getPrometheusConnectionManager())
+}
 
 func getPrometheusConnectionManager() *xds_hcm.HttpConnectionManager {
 	return &xds_hcm.HttpConnectionManager{

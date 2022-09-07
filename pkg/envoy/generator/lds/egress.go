@@ -11,7 +11,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
+	"github.com/openservicemesh/osm/pkg/envoy/generator/rds/route"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -72,7 +72,7 @@ func (lb *listenerBuilder) buildEgressHTTPFilterChain(match trafficpolicy.Traffi
 
 func (lb *listenerBuilder) buildEgressTCPFilterChain(match trafficpolicy.TrafficMatch) (*xds_listener.FilterChain, error) {
 	tcpProxy := &xds_tcp_proxy.TcpProxy{
-		StatPrefix:       fmt.Sprintf("%s.%d", egressTCPProxyStatPrefix, match.DestinationPort),
+		StatPrefix:       fmt.Sprintf("%s.%d", EgressTCPProxyStatPrefix, match.DestinationPort),
 		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: match.Cluster},
 	}
 

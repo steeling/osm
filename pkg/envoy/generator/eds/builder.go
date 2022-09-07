@@ -22,7 +22,7 @@ type endpointsBuilder struct {
 	upstreamSvcEndpoints map[service.MeshService][]endpoint.Endpoint
 }
 
-func newEndpointsBuilder() *endpointsBuilder {
+func NewEDSBuilder() *endpointsBuilder {
 	return &endpointsBuilder{
 		upstreamSvcEndpoints: make(map[service.MeshService][]endpoint.Endpoint),
 	}
