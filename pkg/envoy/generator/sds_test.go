@@ -1,6 +1,7 @@
-package sds
+package generator
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -20,7 +21,7 @@ import (
 
 // TestNewResponse sets up a fake kube client, then a pod and makes an SDS request,
 // and finally verifies the response from sds.NewResponse().
-func TestNewResponse(t *testing.T) {
+func TestGenerateSDS(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	certManager := tresorFake.NewFake(1 * time.Hour)
@@ -83,8 +84,10 @@ func TestNewResponse(t *testing.T) {
 			}
 			meshCatalog.EXPECT().ListOutboundServicesForIdentity(proxy.Identity).Return(services)
 
+			g := NewEnvoyConfigGenerator(meshCatalog, certManager, nil)
+
 			// ----- Test with an properly configured proxy
-			resources, err := NewResponse(meshCatalog, proxy, certManager, nil)
+			resources, err := g.generateSDS(context.Background(), proxy)
 			assert.Equal(err, nil, fmt.Sprintf("Error evaluating sds.NewResponse(): %s", err))
 			assert.NotNil(resources)
 			var certNames, expectedCertNames []string

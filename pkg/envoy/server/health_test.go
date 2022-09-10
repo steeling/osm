@@ -13,7 +13,7 @@ func TestLiveness(t *testing.T) {
 
 func TestReadiness(t *testing.T) {
 	assert := tassert.New(t)
-	assert.True((&Server{ready: true}).Readiness())
+	assert.True((&Server{}).Readiness())
 }
 
 func TestServerGetID(t *testing.T) {

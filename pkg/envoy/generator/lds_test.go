@@ -1,6 +1,7 @@
-package lds
+package generator
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/generator/lds"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -92,7 +94,9 @@ func TestNewResponse(t *testing.T) {
 	)
 
 	cm := tresorFake.NewFake(1 * time.Hour)
-	resources, err := NewResponse(meshCatalog, proxy, cm, nil)
+	g := NewEnvoyConfigGenerator(meshCatalog, cm, nil)
+
+	resources, err := g.generateLDS(context.Background(), proxy)
 	assert.Empty(err)
 	assert.NotNil(resources)
 	// There are 3 listeners configured based on the configuration:
@@ -104,7 +108,7 @@ func TestNewResponse(t *testing.T) {
 	// validating outbound listener
 	listener, ok := resources[0].(*xds_listener.Listener)
 	assert.True(ok)
-	assert.Equal(listener.Name, OutboundListenerName)
+	assert.Equal(listener.Name, lds.OutboundListenerName)
 	assert.Equal(listener.TrafficDirection, xds_core.TrafficDirection_OUTBOUND)
 	assert.Len(listener.ListenerFilters, 3) // Test has egress policy feature enabled, so 3 filters are expected: OriginalDst, TlsInspector, HttpInspector
 	assert.Equal(envoy.OriginalDstFilterName, listener.ListenerFilters[0].Name)
@@ -121,13 +125,13 @@ func TestNewResponse(t *testing.T) {
 	assert.ElementsMatch(expectedServiceFilterChainNames, actualServiceFilterChainNames)
 	assert.Len(listener.FilterChains, 3)
 	assert.NotNil(listener.DefaultFilterChain)
-	assert.Equal(listener.DefaultFilterChain.Name, outboundEgressFilterChainName)
+	assert.Equal(listener.DefaultFilterChain.Name, lds.OutboundEgressFilterChainName)
 	assert.Equal(listener.DefaultFilterChain.Filters[0].Name, envoy.TCPProxyFilterName)
 
 	// validating inbound listener
 	listener, ok = resources[1].(*xds_listener.Listener)
 	assert.True(ok)
-	assert.Equal(listener.Name, InboundListenerName)
+	assert.Equal(listener.Name, lds.InboundListenerName)
 	assert.Equal(listener.TrafficDirection, xds_core.TrafficDirection_INBOUND)
 	assert.Len(listener.ListenerFilters, 2)
 	assert.Equal(listener.ListenerFilters[0].Name, envoy.TLSInspectorFilterName)
@@ -140,7 +144,7 @@ func TestNewResponse(t *testing.T) {
 	// validating prometheus listener
 	listener, ok = resources[2].(*xds_listener.Listener)
 	assert.True(ok)
-	assert.Equal(listener.Name, prometheusListenerName)
+	assert.Equal(listener.Name, lds.PrometheusListenerName)
 	assert.Equal(listener.TrafficDirection, xds_core.TrafficDirection_INBOUND)
 	assert.NotNil(listener.FilterChains)
 	assert.Len(listener.FilterChains, 1)

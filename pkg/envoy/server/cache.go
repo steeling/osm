@@ -4,8 +4,7 @@ import (
 	"context"
 
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-
-	"github.com/openservicemesh/osm/pkg/metricsstore"
+	"github.com/rs/zerolog"
 )
 
 // OnStreamOpen is called on stream open
@@ -17,20 +16,11 @@ func (s *Server) OnStreamOpen(ctx context.Context, streamID int64, typ string) e
 // OnStreamClosed is called on stream closed
 func (s *Server) OnStreamClosed(streamID int64) {
 	log.Debug().Msgf("OnStreamClosed id: %d", streamID)
-	s.proxyRegistry.UnregisterProxy(streamID)
-
-	metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
 }
 
 // OnStreamRequest is called when a request happens on an open connection
 func (s *Server) OnStreamRequest(streamID int64, req *discovery.DiscoveryRequest) error {
 	log.Debug().Msgf("OnStreamRequest node: %s, type: %s, v: %s, nonce: %s, resNames: %s", req.Node.Id, req.TypeUrl, req.VersionInfo, req.ResponseNonce, req.ResourceNames)
-
-	proxy := s.proxyRegistry.GetConnectedProxy(streamID)
-	if proxy != nil {
-		metricsstore.DefaultMetricsStore.ProxyXDSRequestCount.WithLabelValues(proxy.UUID.String(), proxy.Identity.String(), req.TypeUrl).Inc()
-	}
-
 	return nil
 }
 
@@ -74,4 +64,30 @@ func (s *Server) OnStreamDeltaRequest(a int64, req *discovery.DeltaDiscoveryRequ
 // OnStreamDeltaResponse is called when a Delta request is getting responded to
 func (s *Server) OnStreamDeltaResponse(a int64, req *discovery.DeltaDiscoveryRequest, resp *discovery.DeltaDiscoveryResponse) {
 	// Unimplemented
+}
+
+// scLogger implements envoy control plane's log.Logger and delegates calls to the `log` variable defined in
+// types.go. It is used for the envoy snapshot cache.
+type scLogger struct {
+	log zerolog.Logger
+}
+
+// Debugf logs a formatted debugging message.
+func (l *scLogger) Debugf(format string, args ...interface{}) {
+	l.log.Debug().Msgf(format, args...)
+}
+
+// Infof logs a formatted informational message.
+func (l *scLogger) Infof(format string, args ...interface{}) {
+	l.log.Info().Msgf(format, args...)
+}
+
+// Warnf logs a formatted warning message.
+func (l *scLogger) Warnf(format string, args ...interface{}) {
+	l.log.Warn().Msgf(format, args...)
+}
+
+// Errorf logs a formatted error message.
+func (l *scLogger) Errorf(format string, args ...interface{}) {
+	l.log.Error().Msgf(format, args...)
 }

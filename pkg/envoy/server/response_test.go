@@ -1,6 +1,7 @@
 package ads
 
 import (
+	"context"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -14,9 +15,9 @@ import (
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/generator"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -48,7 +49,6 @@ var _ = Describe("Test ADS response functions", func() {
 	Context("Test sendAllResponses()", func() {
 
 		certManager := tresorFake.NewFake(1 * time.Hour)
-		kubectrlMock := k8s.NewMockController(mockCtrl)
 
 		provider.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
 			Spec: v1alpha2.MeshConfigSpec{
@@ -63,14 +63,19 @@ var _ = Describe("Test ADS response functions", func() {
 		metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount)
 
 		It("returns Aggregated Discovery Service response", func() {
-			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, certManager, kubectrlMock, nil)
-
+			s := NewADSServer()
+			ctx := context.Background()
 			Expect(s).ToNot(BeNil())
 			snapshot, err := s.snapshotCache.GetSnapshot(proxy.UUID.String())
 			Expect(err).To(HaveOccurred())
 			Expect(snapshot).To(BeNil())
 
-			err = s.update(proxy)
+			g := generator.NewEnvoyConfigGenerator(mc, certManager, proxyRegistry)
+
+			resources, err := g.GenerateResources(ctx, proxy)
+			Expect(err).To(BeNil())
+
+			err = s.ServeResources(ctx, proxy, resources)
 			Expect(err).To(BeNil())
 
 			snapshot, err = s.snapshotCache.GetSnapshot(proxy.UUID.String())

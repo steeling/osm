@@ -12,9 +12,7 @@ import (
 
 func TestBuildPrometheusListener(t *testing.T) {
 	a := assert.New(t)
-
-	connManager := getPrometheusConnectionManager()
-	listener, err := buildPrometheusListener(connManager)
+	listener, err := BuildPrometheusListener()
 	a.NotNil(listener)
 	a.Nil(err)
 }

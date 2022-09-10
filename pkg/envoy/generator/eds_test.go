@@ -1,6 +1,7 @@
-package eds
+package generator
 
 import (
+	"context"
 	"testing"
 
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -74,7 +75,9 @@ func TestEndpointConfiguration(t *testing.T) {
 	assert.NotNil(proxy)
 
 	proxy = envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), tests.BookbuyerServiceIdentity, nil, 1)
-	resources, err := NewResponse(meshCatalog, proxy, nil, nil)
+
+	g := NewEnvoyConfigGenerator(meshCatalog, nil, nil)
+	resources, err := g.generateEDS(context.Background(), proxy)
 	assert.Nil(err)
 	assert.NotNil(resources)
 
@@ -89,57 +92,4 @@ func TestEndpointConfiguration(t *testing.T) {
 	// validating an endpoint
 	assert.True(ok)
 	assert.Len(loadAssignment.Endpoints, 1)
-}
-
-func TestClusterToMeshSvc(t *testing.T) {
-	testCases := []struct {
-		name            string
-		cluster         string
-		expectedMeshSvc service.MeshService
-		expectError     bool
-	}{
-		{
-			name:            "invalid cluster name",
-			cluster:         "foo/bar/local",
-			expectedMeshSvc: service.MeshService{},
-			expectError:     true,
-		},
-		{
-			name:            "invalid cluster name",
-			cluster:         "foobar",
-			expectedMeshSvc: service.MeshService{},
-			expectError:     true,
-		},
-		{
-			name:    "valid cluster name",
-			cluster: "foo/bar|80",
-			expectedMeshSvc: service.MeshService{
-				Namespace:  "foo",
-				Name:       "bar",
-				TargetPort: 80,
-			},
-			expectError: false,
-		},
-		{
-			name:    "valid headless service-based cluster name",
-			cluster: "foo/mysql-0.mysql|80",
-			expectedMeshSvc: service.MeshService{
-				Namespace:  "foo",
-				Name:       "mysql",
-				Subdomain:  "mysql-0",
-				TargetPort: 80,
-			},
-			expectError: false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert := tassert.New(t)
-
-			meshSvc, err := clusterToMeshSvc(tc.cluster)
-			assert.Equal(tc.expectError, err != nil)
-			assert.Equal(tc.expectedMeshSvc, meshSvc)
-		})
-	}
 }

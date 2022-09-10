@@ -6,7 +6,6 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -25,13 +24,13 @@ const (
 	// OutboundListenerName is the name of the listener used for outbound traffic
 	OutboundListenerName = "outbound-listener"
 
-	prometheusListenerName        = "inbound-prometheus-listener"
-	outboundEgressFilterChainName = "outbound-egress-filter-chain"
+	PrometheusListenerName        = "inbound-prometheus-listener"
+	OutboundEgressFilterChainName = "outbound-egress-filter-chain"
 	egressTCPProxyStatPrefix      = "egress-tcp-proxy"
 )
 
-func buildPrometheusListener(connManager *xds_hcm.HttpConnectionManager) (*xds_listener.Listener, error) {
-	marshalledConnManager, err := anypb.New(connManager)
+func BuildPrometheusListener() (*xds_listener.Listener, error) {
+	marshalledConnManager, err := anypb.New(getPrometheusConnectionManager())
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshalling HttpConnectionManager object")
@@ -39,7 +38,7 @@ func buildPrometheusListener(connManager *xds_hcm.HttpConnectionManager) (*xds_l
 	}
 
 	return &xds_listener.Listener{
-		Name:             prometheusListenerName,
+		Name:             PrometheusListenerName,
 		TrafficDirection: xds_core.TrafficDirection_INBOUND,
 		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyPrometheusInboundListenerPort),
 		FilterChains: []*xds_listener.FilterChain{
@@ -66,7 +65,7 @@ func getDefaultPassthroughFilterChain() *xds_listener.FilterChain {
 	}
 
 	return &xds_listener.FilterChain{
-		Name: outboundEgressFilterChainName,
+		Name: OutboundEgressFilterChainName,
 		Filters: []*xds_listener.Filter{
 			{
 				Name:       envoy.TCPProxyFilterName,

@@ -18,22 +18,22 @@ const (
 	remoteClusterPriority = uint32(1)
 )
 
-type endpointsBuilder struct {
+type EndpointsBuilder struct {
 	upstreamSvcEndpoints map[service.MeshService][]endpoint.Endpoint
 }
 
-func newEndpointsBuilder() *endpointsBuilder {
-	return &endpointsBuilder{
+func NewEndpointsBuilder() *EndpointsBuilder {
+	return &EndpointsBuilder{
 		upstreamSvcEndpoints: make(map[service.MeshService][]endpoint.Endpoint),
 	}
 }
 
-func (b *endpointsBuilder) AddEndpoints(svc service.MeshService, endpoints []endpoint.Endpoint) {
+func (b *EndpointsBuilder) AddEndpoints(svc service.MeshService, endpoints []endpoint.Endpoint) {
 	b.upstreamSvcEndpoints[svc] = endpoints
 }
 
 // Build generate Envoy endpoint resources based on stored endpoints
-func (b *endpointsBuilder) Build() []types.Resource {
+func (b *EndpointsBuilder) Build() []types.Resource {
 	var edsResources []types.Resource
 
 	for svc, endpoints := range b.upstreamSvcEndpoints {
