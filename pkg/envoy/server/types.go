@@ -15,6 +15,7 @@ var (
 
 // Server implements the Envoy xDS Aggregate Discovery Services
 type Server struct {
+	osm.ProxyCallback
 	// ---
 	// SnapshotCache implementation structrues below
 	// Used to maintain a unique ID per stream. Must be accessed with the atomic package.
