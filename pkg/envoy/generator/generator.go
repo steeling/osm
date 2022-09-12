@@ -10,7 +10,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
@@ -23,30 +22,28 @@ type EnvoyConfigGenerator struct {
 	catalog        catalog.MeshCataloger
 	generators     map[envoy.TypeURI]func(context.Context, *envoy.Proxy) ([]types.Resource, error)
 	certManager    *certificate.Manager
-	proxyRegistry  *registry.ProxyRegistry
 	xdsMapLogMutex sync.Mutex
 	xdsLog         map[string]map[envoy.TypeURI][]time.Time
 }
 
-func NewEnvoyConfigGenerator(catalog catalog.MeshCataloger, certManager *certificate.Manager, proxyRegistry *registry.ProxyRegistry) *EnvoyConfigGenerator {
+func NewEnvoyConfigGenerator(catalog catalog.MeshCataloger, certManager *certificate.Manager) *EnvoyConfigGenerator {
 	g := &EnvoyConfigGenerator{
-		catalog:       catalog,
-		certManager:   certManager,
-		proxyRegistry: proxyRegistry,
-		xdsLog:        make(map[string]map[envoy.TypeURI][]time.Time),
+		catalog:     catalog,
+		certManager: certManager,
+		xdsLog:      make(map[string]map[envoy.TypeURI][]time.Time),
 	}
-	// g.generators = map[envoy.TypeURI]func(context.Context, *envoy.Proxy) ([]types.Resource, error){
-	// 	envoy.TypeCDS: g.generateClusterResponse,
-	// 	envoy.TypeEDS: g.generateEndpointResponse,
-	// 	envoy.TypeLDS: g.generateListenerResponse,
-	// 	envoy.TypeRDS: g.generateRouteResponse,
-	// 	envoy.TypeSDS: g.generateSecretResponse,
-	// }
+	g.generators = map[envoy.TypeURI]func(context.Context, *envoy.Proxy) ([]types.Resource, error){
+		// envoy.TypeCDS: g.generateCDS,
+		envoy.TypeEDS: g.generateEDS,
+		envoy.TypeLDS: g.generateLDS,
+		// envoy.TypeRDS: g.generateRDS,
+		envoy.TypeSDS: g.generateSDS,
+	}
 	return g
 }
 
-// GenerateResources generates and returns the resources for the given proxy.
-func (g *EnvoyConfigGenerator) GenerateResources(ctx context.Context, proxy *envoy.Proxy) (map[string][]types.Resource, error) {
+// GenerateConfig generates and returns the resources for the given proxy.
+func (g *EnvoyConfigGenerator) GenerateConfig(ctx context.Context, proxy *envoy.Proxy) (map[string][]types.Resource, error) {
 	cacheResourceMap := map[string][]types.Resource{}
 	for typeURI, handler := range g.generators {
 		log.Trace().Str("proxy", proxy.String()).Msgf("Getting resources for type %s", typeURI.Short())

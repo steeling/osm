@@ -11,25 +11,43 @@ import (
 	"github.com/openservicemesh/osm/pkg/workerpool"
 )
 
+const (
+	workerPoolSize = 0
+)
+
 type ProxyConfigServer[T any] interface {
 	ServeConfig(context.Context, *envoy.Proxy, T) error
-	Healthy(ctx context.Context) error
 }
 
 type ProxyConfigGenerator[T any] interface {
 	GenerateConfig(context.Context, *envoy.Proxy) (T, error)
-	Healthy(ctx context.Context) error
 }
 
 type ControlPlane[T any] struct {
-	ConfigServer    ProxyConfigServer[T]
-	ConfigGenerator ProxyConfigGenerator[T]
+	configServer    ProxyConfigServer[T]
+	configGenerator ProxyConfigGenerator[T]
 
 	catalog       catalog.MeshCataloger
 	proxyRegistry *registry.ProxyRegistry
-	osmNamespace  string
 	certManager   *certificate.Manager
 	workqueues    *workerpool.WorkerPool
+	msgBroker     *messaging.Broker
+}
 
-	msgBroker *messaging.Broker
+func NewControlPlane[T any](server ProxyConfigServer[T],
+	generator ProxyConfigGenerator[T],
+	catalog catalog.MeshCataloger,
+	proxyRegistry *registry.ProxyRegistry,
+	certManager *certificate.Manager,
+	msgBroker *messaging.Broker,
+) *ControlPlane[T] {
+	return &ControlPlane[T]{
+		configServer:    server,
+		configGenerator: generator,
+		catalog:         catalog,
+		proxyRegistry:   proxyRegistry,
+		certManager:     certManager,
+		workqueues:      workerpool.NewWorkerPool(workerPoolSize),
+		msgBroker:       msgBroker,
+	}
 }

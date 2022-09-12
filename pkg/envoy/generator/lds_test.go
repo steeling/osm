@@ -94,7 +94,7 @@ func TestNewResponse(t *testing.T) {
 	)
 
 	cm := tresorFake.NewFake(1 * time.Hour)
-	g := NewEnvoyConfigGenerator(meshCatalog, cm, nil)
+	g := NewEnvoyConfigGenerator(meshCatalog, cm)
 
 	resources, err := g.generateLDS(context.Background(), proxy)
 	assert.Empty(err)

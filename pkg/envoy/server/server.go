@@ -34,6 +34,12 @@ func NewADSServer() *Server {
 	return &server
 }
 
+// SetCallbacks is a method used to set the callbacks that notify the rest of the system that a proxy, with the given
+// unique connection id, has either connected or disconnected.
+func (s *Server) SetCallbacks(cb streamCallback) {
+	s.callbacks = cb
+}
+
 // Start starts the ADS server
 func (s *Server) Start(ctx context.Context, certManager *certificate.Manager, cancel context.CancelFunc, port int) error {
 	grpcServer, lis, err := NewGrpc(ServerType, port, xdsServerCertificateCommonName, certManager)
@@ -51,10 +57,10 @@ func (s *Server) Start(ctx context.Context, certManager *certificate.Manager, ca
 	return nil
 }
 
-// ServeResources stores a group of resources as a new Snapshot with a new version in the cache.
+// ServeConfig stores a group of resources as a new Snapshot with a new version in the cache.
 // It also runs a consistency check on the snapshot (will warn if there are missing resources referenced in
 // the snapshot)
-func (s *Server) ServeResources(ctx context.Context, proxy *envoy.Proxy, snapshotResources map[string][]types.Resource) error {
+func (s *Server) ServeConfig(ctx context.Context, proxy *envoy.Proxy, snapshotResources map[string][]types.Resource) error {
 	uuid := proxy.UUID.String()
 
 	s.configVerMutex.Lock()

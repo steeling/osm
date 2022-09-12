@@ -84,7 +84,7 @@ func TestGenerateSDS(t *testing.T) {
 			}
 			meshCatalog.EXPECT().ListOutboundServicesForIdentity(proxy.Identity).Return(services)
 
-			g := NewEnvoyConfigGenerator(meshCatalog, certManager, nil)
+			g := NewEnvoyConfigGenerator(meshCatalog, certManager)
 
 			// ----- Test with an properly configured proxy
 			resources, err := g.generateSDS(context.Background(), proxy)

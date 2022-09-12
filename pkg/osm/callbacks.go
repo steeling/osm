@@ -21,12 +21,12 @@ import (
 )
 
 // OnStreamOpen is called on stream open
-func (cp *ControlPlane[T]) OnProxyConnect(ctx context.Context, streamID int64) error {
+func (cp *ControlPlane[T]) ProxyConnected(ctx context.Context, connectionID int64) error {
 	// When a new Envoy proxy connects, ValidateClient would ensure that it has a valid certificate,
 	// and the Subject CN is in the allowedCommonNames set.
 	certCommonName, certSerialNumber, err := utils.ValidateClient(ctx)
 	if err != nil {
-		return fmt.Errorf("Could not start cannot connect proxy for stream id %d: %w", streamID, err)
+		return fmt.Errorf("Could not start cannot connect proxy for stream id %d: %w", connectionID, err)
 	}
 
 	// If maxDataPlaneConnections is enabled i.e. not 0, then check that the number of Envoy connections is less than maxDataPlaneConnections
@@ -43,7 +43,7 @@ func (cp *ControlPlane[T]) OnProxyConnect(ctx context.Context, streamID int64) e
 		return fmt.Errorf("error parsing certificate common name %s: %w", certCommonName, err)
 	}
 
-	proxy := envoy.NewProxy(kind, uuid, si, utils.GetIPFromContext(ctx), streamID)
+	proxy := envoy.NewProxy(kind, uuid, si, utils.GetIPFromContext(ctx), connectionID)
 
 	if err := cp.catalog.VerifyProxy(proxy); err != nil {
 		return err
@@ -95,11 +95,11 @@ func (cp *ControlPlane[T]) scheduleUpdate(ctx context.Context, proxy *envoy.Prox
 }
 
 func (cp *ControlPlane[T]) update(ctx context.Context, proxy *envoy.Proxy) error {
-	resources, err := cp.ConfigGenerator.GenerateConfig(ctx, proxy)
+	resources, err := cp.configGenerator.GenerateConfig(ctx, proxy)
 	if err != nil {
 		return err
 	}
-	if err := cp.ConfigServer.ServeConfig(ctx, proxy, resources); err != nil {
+	if err := cp.configServer.ServeConfig(ctx, proxy, resources); err != nil {
 		return err
 	}
 	log.Debug().Msgf("successfully updated resources for proxy %s", proxy.String())
@@ -107,9 +107,9 @@ func (cp *ControlPlane[T]) update(ctx context.Context, proxy *envoy.Proxy) error
 }
 
 // OnStreamClosed is called on stream closed
-func (cp *ControlPlane[T]) OnStreamClosed(streamID int64) {
-	log.Debug().Msgf("OnStreamClosed id: %d", streamID)
-	cp.proxyRegistry.UnregisterProxy(streamID)
+func (cp *ControlPlane[T]) ProxyDisconnected(connectionID int64) {
+	log.Debug().Msgf("OnStreamClosed id: %d", connectionID)
+	cp.proxyRegistry.UnregisterProxy(connectionID)
 
 	metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
 }

@@ -2,6 +2,7 @@
 package ads
 
 import (
+	"context"
 	"sync"
 
 	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
@@ -13,9 +14,17 @@ var (
 	log = logger.New("envoy/server")
 )
 
+// streamCallback is the interface used to notify the rest of the system that a proxy has connected, with the unique
+// connection id.
+type streamCallback interface {
+	ProxyConnected(ctx context.Context, connectionID int64) error
+	ProxyDisconnected(connectionID int64)
+}
+
 // Server implements the Envoy xDS Aggregate Discovery Services
 type Server struct {
-	osm.ProxyCallback
+	callbacks streamCallback
+
 	// ---
 	// SnapshotCache implementation structrues below
 	// Used to maintain a unique ID per stream. Must be accessed with the atomic package.

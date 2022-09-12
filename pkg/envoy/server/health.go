@@ -7,7 +7,7 @@ func (s *Server) Liveness() bool {
 
 // Readiness is the Kubernetes readiness probe handler.
 func (s *Server) Readiness() bool {
-	return s.ready
+	return true
 }
 
 // GetID returns the ID of the probe

@@ -23,7 +23,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	policyFake "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -99,8 +98,6 @@ func setupTestGenerator(b *testing.B) (*envoy.Proxy, *EnvoyConfigGenerator) {
 		msgBroker,
 	)
 
-	proxyRegistry := registry.NewProxyRegistry()
-
 	pod := tests.NewPodFixture(namespace, fmt.Sprintf("pod-0-%s", proxyUUID), tests.BookstoreServiceAccountName, tests.PodLabels)
 	pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
 	_, err = kubeClient.CoreV1().Pods(namespace).Create(context.Background(), pod, metav1.CreateOptions{})
@@ -127,7 +124,7 @@ func setupTestGenerator(b *testing.B) (*envoy.Proxy, *EnvoyConfigGenerator) {
 
 	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, proxySvcAccount.ToServiceIdentity(), nil, 1)
 
-	return proxy, NewEnvoyConfigGenerator(mc, certManager, proxyRegistry)
+	return proxy, NewEnvoyConfigGenerator(mc, certManager)
 }
 
 func BenchmarkSendXDSResponse(b *testing.B) {

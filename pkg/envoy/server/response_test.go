@@ -16,7 +16,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/generator"
-	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -28,8 +27,6 @@ var _ = Describe("Test ADS response functions", func() {
 	mockCtrl := gomock.NewController(GinkgoT())
 	proxyUUID := uuid.New()
 	proxySvcID := tests.BookstoreServiceIdentity
-
-	proxyRegistry := registry.NewProxyRegistry()
 
 	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, proxySvcID, nil, 1)
 
@@ -70,12 +67,12 @@ var _ = Describe("Test ADS response functions", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(snapshot).To(BeNil())
 
-			g := generator.NewEnvoyConfigGenerator(mc, certManager, proxyRegistry)
+			g := generator.NewEnvoyConfigGenerator(mc, certManager)
 
-			resources, err := g.GenerateResources(ctx, proxy)
+			resources, err := g.GenerateConfig(ctx, proxy)
 			Expect(err).To(BeNil())
 
-			err = s.ServeResources(ctx, proxy, resources)
+			err = s.ServeConfig(ctx, proxy, resources)
 			Expect(err).To(BeNil())
 
 			snapshot, err = s.snapshotCache.GetSnapshot(proxy.UUID.String())

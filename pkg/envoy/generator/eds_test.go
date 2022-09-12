@@ -76,7 +76,7 @@ func TestEndpointConfiguration(t *testing.T) {
 
 	proxy = envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), tests.BookbuyerServiceIdentity, nil, 1)
 
-	g := NewEnvoyConfigGenerator(meshCatalog, nil, nil)
+	g := NewEnvoyConfigGenerator(meshCatalog, nil)
 	resources, err := g.generateEDS(context.Background(), proxy)
 	assert.Nil(err)
 	assert.NotNil(resources)
