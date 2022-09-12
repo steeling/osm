@@ -7,12 +7,15 @@ import (
 	"time"
 
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	"go.uber.org/atomic"
 
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
+
+var minUpdateResyncPeriod = time.Minute
 
 // OnStreamOpen is called on stream open
 func (s *Server) OnStreamOpen(ctx context.Context, streamID int64, typ string) error {
@@ -45,36 +48,80 @@ func (s *Server) OnStreamOpen(ctx context.Context, streamID int64, typ string) e
 	}
 
 	s.proxyRegistry.RegisterProxy(proxy)
-	go func() {
-		// Register for proxy config updates broadcasted by the message broker
-		proxyUpdatePubSub := s.msgBroker.GetProxyUpdatePubSub()
-		proxyUpdateChan := proxyUpdatePubSub.Sub(messaging.ProxyUpdateTopic, messaging.GetPubSubTopicForProxyUUID(proxy.UUID.String()))
-		defer s.msgBroker.Unsub(proxyUpdatePubSub, proxyUpdateChan)
-
-		certRotations, unsubRotations := s.certManager.SubscribeRotations(proxy.Identity.String())
-		defer unsubRotations()
-
-		// schedule one update for this proxy initially.
-		s.scheduleUpdate(proxy)
-		for {
-			select {
-			case <-proxyUpdateChan:
-				log.Debug().Str("proxy", proxy.String()).Msg("Broadcast update received")
-				s.scheduleUpdate(proxy)
-			case <-certRotations:
-				log.Debug().Str("proxy", proxy.String()).Msg("Certificate has been updated for proxy")
-				s.scheduleUpdate(proxy)
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
+	go s.watchProxyUpdates(ctx, proxy)
 	return nil
 }
 
-func (s *Server) scheduleUpdate(proxy *envoy.Proxy) {
-	var wg sync.WaitGroup
-	wg.Add(1)
+// watchProxyUpdates watches and schedules proxy updates, either due to broadcasts from the message broker, certificate
+// rotations, or after `minUpdateResyncPeriod` from the last update. It works via the following algorithm:
+// 1. Watches for broadcast, cert rotation, and timer based updates. When an event is seen, we check if an update is
+// already in progress. If there is an update in progress, we mark a `needsUpdate` bool to true, in case something has
+// changed mid update, and we need to capture it with a new sync.
+// When the prior update completes, we stop and reset the timer to `minUpdateResyncPeriod`, and if `needsUpdate` is true
+// we immediately schedule a new update.
+func (s *Server) watchProxyUpdates(ctx context.Context, proxy *envoy.Proxy) {
+	// Register for proxy config updates broadcasted by the message broker
+	proxyUpdatePubSub := s.msgBroker.GetProxyUpdatePubSub()
+	proxyUpdateChan := proxyUpdatePubSub.Sub(messaging.ProxyUpdateTopic, messaging.GetPubSubTopicForProxyUUID(proxy.UUID.String()))
+	defer s.msgBroker.Unsub(proxyUpdatePubSub, proxyUpdateChan)
+
+	certRotations, unsubRotations := s.certManager.SubscribeRotations(proxy.Identity.String())
+	defer unsubRotations()
+
+	var mu sync.Mutex
+	// Needs to be of size one since we add to it on the same routine we listen on.
+	updateChan := make(chan any, 1)
+	timer := time.NewTimer(minUpdateResyncPeriod)
+	var needsUpdate atomic.Bool
+	// want:
+	// 1. A timer that is reset when the call finishes
+	// 2. An additional call to add another send if the
+	updateDone := func() {
+		shouldUpdate := needsUpdate.Load()
+		// Update to false while holding this lock, to not erase a reset to true.
+		// It could get incorrectly over written to true still, but this is better than getting incorrectly
+		// overwritten to false.
+		needsUpdate.Store(false)
+		if !timer.Stop() {
+			<-timer.C
+		}
+		timer.Reset(minUpdateResyncPeriod)
+		mu.Unlock()
+		if shouldUpdate {
+			updateChan <- struct{}{}
+		}
+	}
+
+	// schedule a single update to start. This is required to support proxies reconnecting.
+	updateChan <- struct{}{}
+
+	for {
+		// NOTE(#4847): since we're listening on pubsub channels, nothing should block in this routine. Blocking in this
+		// routine can cause delays to all `watchProxyUpdates` routines, delaying updates to all proxies.
+		select {
+		case <-timer.C:
+			log.Debug().Str("proxy", proxy.String()).Msg("haven't updated the proxy in over 1 minute, sending a new update.")
+			updateChan <- struct{}{}
+		case <-proxyUpdateChan:
+			log.Debug().Str("proxy", proxy.String()).Msg("Broadcast update received")
+			updateChan <- struct{}{}
+		case <-certRotations:
+			log.Debug().Str("proxy", proxy.String()).Msg("Certificate has been updated for proxy")
+			updateChan <- struct{}{}
+		case <-updateChan:
+			if mu.TryLock() {
+				s.scheduleUpdate(proxy, updateDone)
+			} else {
+				needsUpdate.Store(true)
+				log.Debug().Str("proxy", proxy.String()).Msg("skipping update due to in process update")
+			}
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (s *Server) scheduleUpdate(proxy *envoy.Proxy, done func()) {
 	s.workqueues.AddJob(
 		func() {
 			t := time.Now()
@@ -84,9 +131,8 @@ func (s *Server) scheduleUpdate(proxy *envoy.Proxy) {
 				log.Error().Err(err).Str("proxy", proxy.String()).Msg("Error generating resources for proxy")
 			}
 			log.Debug().Msgf("Update for proxy %s took took %v", proxy.String(), time.Since(t))
-			wg.Done()
+			done()
 		})
-	wg.Wait()
 }
 
 func (s *Server) update(proxy *envoy.Proxy) error {

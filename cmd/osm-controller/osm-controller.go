@@ -227,9 +227,7 @@ func main() {
 	meshCatalog := catalog.NewMeshCatalog(
 		meshSpec,
 		certManager,
-		stop,
 		computeClient,
-		msgBroker,
 	)
 
 	proxyRegistry := registry.NewProxyRegistry()

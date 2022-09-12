@@ -4,7 +4,6 @@ package messaging
 
 import (
 	"github.com/cskr/pubsub"
-	"k8s.io/client-go/util/workqueue"
 
 	"github.com/openservicemesh/osm/pkg/logger"
 )
@@ -15,11 +14,7 @@ var (
 
 // Broker implements the message broker functionality
 type Broker struct {
-	queue             workqueue.RateLimitingInterface
-	proxyUpdatePubSub *pubsub.PubSub
-	// channel used to send proxy updates. The messages are coalesced when sent in a tight loop. The string value
-	// is only used for logging.
-	proxyUpdateCh                  chan string
+	proxyUpdatePubSub              *pubsub.PubSub
 	kubeEventPubSub                *pubsub.PubSub
 	totalQEventCount               uint64
 	totalQProxyEventCount          uint64

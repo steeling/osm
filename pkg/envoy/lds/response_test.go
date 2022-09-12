@@ -22,7 +22,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -32,8 +31,6 @@ func TestNewResponse(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-
-	stop := make(chan struct{})
 
 	mockMeshSpec.EXPECT().ListTrafficTargets(gomock.Any()).Return([]*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget}).AnyTimes()
 	mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*specs.HTTPRouteGroup{&tests.HTTPRouteGroup}).AnyTimes()
@@ -86,9 +83,7 @@ func TestNewResponse(t *testing.T) {
 	meshCatalog := catalog.NewMeshCatalog(
 		mockMeshSpec,
 		tresorFake.NewFake(time.Hour),
-		stop,
 		provider,
-		messaging.NewBroker(stop),
 	)
 
 	cm := tresorFake.NewFake(1 * time.Hour)

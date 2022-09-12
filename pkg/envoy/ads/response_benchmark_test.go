@@ -105,9 +105,7 @@ func setupTestServer(b *testing.B) {
 	mc := catalog.NewMeshCatalog(
 		meshSpec,
 		certManager,
-		stop,
 		kubeProvider,
-		msgBroker,
 	)
 
 	proxyRegistry := registry.NewProxyRegistry()
