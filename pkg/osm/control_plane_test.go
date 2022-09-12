@@ -73,9 +73,7 @@ func TestControlLoop(t *testing.T) {
 	meshCatalog := catalog.NewMeshCatalog(
 		nil,
 		tresorFake.NewFake(time.Hour),
-		stop,
 		provider,
-		messaging.NewBroker(stop),
 	)
 
 	cp := NewControlPlane[fakeConfig](server, g, meshCatalog, registry.NewProxyRegistry(), certManager, messaging.NewBroker(stop))

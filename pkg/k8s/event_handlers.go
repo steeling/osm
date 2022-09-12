@@ -37,7 +37,7 @@ func GetEventHandlerFuncs(shouldObserve observeFilter, msgBroker *messaging.Brok
 			logResourceEvent(log, msg.Topic(), obj)
 			ns := getNamespace(obj)
 			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(msg.Topic(), ns).Inc()
-			msgBroker.GetQueue().AddRateLimited(msg)
+			msgBroker.AddEvent(msg)
 		},
 
 		UpdateFunc: func(oldObj, newObj interface{}) {
@@ -53,7 +53,7 @@ func GetEventHandlerFuncs(shouldObserve observeFilter, msgBroker *messaging.Brok
 			logResourceEvent(log, msg.Topic(), newObj)
 			ns := getNamespace(newObj)
 			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(msg.Topic(), ns).Inc()
-			msgBroker.GetQueue().AddRateLimited(msg)
+			msgBroker.AddEvent(msg)
 		},
 
 		DeleteFunc: func(obj interface{}) {
@@ -69,7 +69,7 @@ func GetEventHandlerFuncs(shouldObserve observeFilter, msgBroker *messaging.Brok
 			logResourceEvent(log, msg.Topic(), obj)
 			ns := getNamespace(obj)
 			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(msg.Topic(), ns).Inc()
-			msgBroker.GetQueue().AddRateLimited(msg)
+			msgBroker.AddEvent(msg)
 		},
 	}
 }

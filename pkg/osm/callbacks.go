@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -60,15 +61,49 @@ func (cp *ControlPlane[T]) ProxyConnected(ctx context.Context, connectionID int6
 		defer unsubRotations()
 
 		// schedule one update for this proxy initially.
-		cp.scheduleUpdate(ctx, proxy)
+
+		var mu sync.Mutex
+		mu.Lock()
+		cp.scheduleUpdate(ctx, proxy, mu.Unlock)
+		// Needs to be of size one since we add to it on the same routine we listen on.
+		updateChan := make(chan any, 1)
+		timer := time.NewTimer(time.Minute)
+		var needsUpdate atomic.Bool
+		// want:
+		// 1. A timer that is reset when the call finishes
+		// 2. An additional call to add another send if the
 		for {
 			select {
+			case <-timer.C:
+				log.Debug().Str("proxy", proxy.String()).Msg("haven't updated the proxy in over 1 minute, sending a new update.")
+				updateChan <- struct{}{}
 			case <-proxyUpdateChan:
 				log.Debug().Str("proxy", proxy.String()).Msg("Broadcast update received")
-				cp.scheduleUpdate(ctx, proxy)
+				updateChan <- struct{}{}
 			case <-certRotations:
 				log.Debug().Str("proxy", proxy.String()).Msg("Certificate has been updated for proxy")
-				cp.scheduleUpdate(ctx, proxy)
+				updateChan <- struct{}{}
+			case <-updateChan:
+				if mu.TryLock() {
+					cp.scheduleUpdate(ctx, proxy, func() {
+						shouldUpdate := needsUpdate.Load()
+						// Update to false while holding this lock, to not erase a reset to true.
+						// It could get incorrectly over written to true still, but this is better than getting incorrectly
+						// overwritten to false.
+						needsUpdate.Store(false)
+						if !timer.Stop() {
+							<-timer.C
+						}
+						timer.Reset(time.Minute)
+						mu.Unlock()
+						if shouldUpdate {
+							updateChan <- struct{}{}
+						}
+					})
+				} else {
+					needsUpdate.Store(true)
+					log.Debug().Str("proxy", proxy.String()).Msg("skipping update due to in process update")
+				}
 			case <-ctx.Done():
 				return
 			}
@@ -77,9 +112,7 @@ func (cp *ControlPlane[T]) ProxyConnected(ctx context.Context, connectionID int6
 	return nil
 }
 
-func (cp *ControlPlane[T]) scheduleUpdate(ctx context.Context, proxy *envoy.Proxy) {
-	var wg sync.WaitGroup
-	wg.Add(1)
+func (cp *ControlPlane[T]) scheduleUpdate(ctx context.Context, proxy *envoy.Proxy, done func()) {
 	cp.workqueues.AddJob(
 		func() {
 			t := time.Now()
@@ -89,9 +122,8 @@ func (cp *ControlPlane[T]) scheduleUpdate(ctx context.Context, proxy *envoy.Prox
 				log.Error().Err(err).Str("proxy", proxy.String()).Msg("Error generating resources for proxy")
 			}
 			log.Debug().Msgf("Update for proxy %s took took %v", proxy.String(), time.Since(t))
-			wg.Done()
+			done()
 		})
-	wg.Wait()
 }
 
 func (cp *ControlPlane[T]) update(ctx context.Context, proxy *envoy.Proxy) error {

@@ -93,9 +93,7 @@ func setupTestGenerator(b *testing.B) (*envoy.Proxy, *EnvoyConfigGenerator) {
 	mc := catalog.NewMeshCatalog(
 		meshSpec,
 		certManager,
-		stop,
 		kubeProvider,
-		msgBroker,
 	)
 
 	pod := tests.NewPodFixture(namespace, fmt.Sprintf("pod-0-%s", proxyUUID), tests.BookstoreServiceAccountName, tests.PodLabels)
