@@ -294,7 +294,9 @@ func buildVirtualHostStub(namePrefix string, host string, domains []string) *xds
 // buildInboundRoutes takes a route information from the given inbound traffic policy and returns a list of xds routes
 func buildInboundRoutes(rules []*trafficpolicy.Rule, trustDomain string) []*xds_route.Route {
 	var routes []*xds_route.Route
+	fmt.Println("checking rules ", len(rules))
 	for _, rule := range rules {
+		fmt.Println("checking rule ", rule)
 		// For a given route path, sanitize the methods in case there
 		// is wildcard or if there are duplicates
 		allowedMethods := sanitizeHTTPMethods(rule.Route.HTTPRouteMatch.Methods)
@@ -310,6 +312,7 @@ func buildInboundRoutes(rules []*trafficpolicy.Rule, trustDomain string) []*xds_
 
 		// Each HTTP method corresponds to a separate route
 		for _, method := range allowedMethods {
+			fmt.Println("checking method!", method)
 			route := buildRoute(rule.Route, method)
 			applyInboundRouteConfig(route, rbacConfig, rule.Route.RateLimit)
 			routes = append(routes, route)

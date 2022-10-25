@@ -1,6 +1,8 @@
 package rds
 
 import (
+	"fmt"
+
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
@@ -124,8 +126,10 @@ func (b *routesBuilder) buildOutboundMeshRouteConfiguration() []*xds_route.Route
 	// An Envoy RouteConfiguration will exist for each HTTP upstream port.
 	// This is required to avoid route conflicts that can arise when the same host header
 	// has different routes on different destination ports for that host.
+	fmt.Println("building outbound ", len(b.outboundPortSpecificRouteConfigs))
 	for port, configs := range b.outboundPortSpecificRouteConfigs {
 		routeConfig := newRouteConfigurationStub(GetOutboundMeshRouteConfigNameForPort(port))
+		fmt.Println("building specific config ", port, len(configs))
 		for _, config := range configs {
 			virtualHost := buildVirtualHostStub(outboundVirtualHost, config.Name, config.Hostnames)
 			virtualHost.Routes = buildOutboundRoutes(config.Routes)
@@ -165,10 +169,12 @@ func (b *routesBuilder) Build() ([]types.Resource, error) {
 	// the services associated with this proxy to accept traffic from downstream
 	// clients on allowed routes.
 	if b.inboundPortSpecificRouteConfigs != nil {
+		fmt.Println("building inbound mesh route configs")
 		inboundMeshRouteConfig := b.buildInboundMeshRouteConfiguration()
 		for _, config := range inboundMeshRouteConfig {
 			rdsResources = append(rdsResources, config)
 		}
+		fmt.Println("built inbound mesh route configs", len(inboundMeshRouteConfig))
 	}
 
 	// ---
@@ -176,10 +182,12 @@ func (b *routesBuilder) Build() ([]types.Resource, error) {
 	// to direct traffic to upstream services that it is authorized to connect to on allowed
 	// routes.
 	if b.outboundPortSpecificRouteConfigs != nil {
+		fmt.Println("building outbound mesh route configs")
 		outboundMeshRouteConfig := b.buildOutboundMeshRouteConfiguration()
 		for _, config := range outboundMeshRouteConfig {
 			rdsResources = append(rdsResources, config)
 		}
+		fmt.Println("built outbound mesh route configs", len(outboundMeshRouteConfig))
 	}
 
 	// ---
@@ -187,18 +195,22 @@ func (b *routesBuilder) Build() ([]types.Resource, error) {
 	// services associated with this proxy to accept ingress traffic from downstream
 	// clients on allowed routes.
 	if len(b.ingressTrafficPolicies) > 0 {
+		fmt.Println("building ingress route configs")
 		ingressRouteConfig := b.buildIngressConfiguration()
 		rdsResources = append(rdsResources, ingressRouteConfig)
+		fmt.Println("built ingress route configs", ingressRouteConfig == nil, ingressRouteConfig)
 	}
 
 	// ---
 	// Build egress route configurations. These route configurations allow this
 	// proxy to direct traffic to external non-mesh destinations on allowed routes.
 	if b.egressPortSpecificRouteConfigs != nil {
+		fmt.Println("building egress route configs")
 		egressRouteConfigs := b.buildEgressRouteConfiguration()
 		for _, egressConfig := range egressRouteConfigs {
 			rdsResources = append(rdsResources, egressConfig)
 		}
+		fmt.Println("built egress mesh route configs", len(egressRouteConfigs))
 	}
 
 	return rdsResources, nil

@@ -150,6 +150,7 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 	fmt.Println("\n------listing tt by options for outbound------")
 	for _, t := range mc.ListTrafficTargetsByOptions() { // loop through all traffic targets
 		for _, source := range t.Spec.Sources {
+			fmt.Println("checking ", serviceIdentity, " against ", source.Name, source.Namespace)
 			if source.Name != svcAccount.Name || source.Namespace != svcAccount.Namespace {
 				// Source doesn't match the downstream's service identity
 				continue
